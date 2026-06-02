@@ -1,0 +1,37 @@
+import { create } from 'zustand';
+import { Note } from '../../features/domain/entities/Note';
+
+interface AppState {
+    notes: Note[];
+    loading: boolean;
+    hasMore: boolean;
+    searchQuery: string;
+    setSearchQuery: (query: string) => void;
+    setNotes: (notes: Note[]) => void;
+    appendNotes: (newNotes: Note[]) => void;
+    addNote: (note: Note) => void;
+    updateNote: (note: Note) => void;
+    removeNote: (id: string) => void;
+    setLoading: (loading: boolean) => void;
+    setHasMore: (hasMore: boolean) => void;
+}
+
+export const useStore = create<AppState>((set) => ({
+    notes: [],
+    loading: false,
+    hasMore: true,
+    searchQuery: '',
+    setSearchQuery: (query) => set({ searchQuery: query }),
+    setNotes: (notes) => set({ notes }),
+    appendNotes: (newNotes) => set((state) => ({ notes: [...state.notes, ...newNotes] })),
+    addNote: (note) => set((state) => ({ notes: [note, ...state.notes] })),
+    updateNote: (note) => set((state) => ({
+        notes: state.notes.map((n) => (n.id === note.id ? note : n))
+            .sort((a, b) => b.updated_at - a.updated_at)
+    })),
+    removeNote: (id) => set((state) => ({
+        notes: state.notes.filter((n) => n.id !== id)
+    })),
+    setLoading: (loading) => set({ loading }),
+    setHasMore: (hasMore) => set({ hasMore }),
+}));
