@@ -12,53 +12,47 @@ export const getNotes = async (limit: number, cursor?: number): Promise<Note[]> 
         params.push(cursor);
     }
 
-    query += ' ORDER BY updated_at DESC LIMIT ?';
+    query += ' ORDER BY is_pinned DESC, updated_at DESC LIMIT ?';
     params.push(limit);
 
     const result = await db.getAllAsync<any>(query, ...params);
-    return result.map(row => ({
-        ...row,
-        notify: !!row.notify
-    }));
+    return result;
 };
 
 export const getNoteById = async (id: string): Promise<Note | null> => {
     const db = await getDb();
     const row = await db.getFirstAsync<any>('SELECT * FROM notes WHERE id = ?', id);
     if (!row) return null;
-    return {
-        ...row,
-        notify: !!row.notify
-    };
+    return row;
 };
 
 export const createNote = async (
     title: string,
     content: string,
     type: 'note' | 'reminder' = 'note',
-    notify: boolean = false,
     reminderAt?: number,
     repeatDays?: string
 ): Promise<Note> => {
     const db = await getDb();
     const id = Crypto.randomUUID();
     const now = Date.now();
-    const notifyVal = notify ? 1 : 0;
+
+    const finalReminderAt = type === 'note' ? undefined : reminderAt;
+    const finalRepeatDays = type === 'note' ? undefined : repeatDays;
 
     await db.runAsync(
-        'INSERT INTO notes (id, title, content, type, notify, reminder_at, repeat_days, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO notes (id, title, content, type, reminder_at, repeat_days, is_pinned, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?)',
         id,
         title,
         content,
         type,
-        notifyVal,
-        reminderAt ?? null,
-        repeatDays ?? null,
+        finalReminderAt ?? null,
+        finalRepeatDays ?? null,
         now,
         now
     );
 
-    return { id, title, content, type, notify, reminder_at: reminderAt, repeat_days: repeatDays, created_at: now, updated_at: now };
+    return { id, title, content, type, reminder_at: finalReminderAt, repeat_days: finalRepeatDays, is_pinned: 0, position: 0, created_at: now, updated_at: now };
 };
 
 export const updateNote = async (
@@ -66,9 +60,10 @@ export const updateNote = async (
     title?: string,
     content?: string,
     type?: 'note' | 'reminder',
-    notify?: boolean,
     reminderAt?: number,
-    repeatDays?: string
+    repeatDays?: string,
+    isPinned?: number,
+    position?: number
 ): Promise<Note> => {
     const db = await getDb();
     const now = Date.now();
@@ -79,19 +74,20 @@ export const updateNote = async (
     const updatedTitle = title ?? existing.title;
     const updatedContent = content ?? existing.content;
     const updatedType = type ?? existing.type;
-    const updatedNotify = notify ?? existing.notify;
-    const updatedReminderAt = reminderAt ?? existing.reminder_at;
-    const updatedRepeatDays = repeatDays ?? existing.repeat_days;
-    const notifyVal = updatedNotify ? 1 : 0;
+    const updatedReminderAt = updatedType === 'note' ? undefined : (reminderAt ?? existing.reminder_at);
+    const updatedRepeatDays = updatedType === 'note' ? undefined : (repeatDays ?? existing.repeat_days);
+    const updatedIsPinned = isPinned ?? (existing.is_pinned ?? 0);
+    const updatedPosition = position ?? (existing.position ?? 0);
 
     await db.runAsync(
-        'UPDATE notes SET title = ?, content = ?, type = ?, notify = ?, reminder_at = ?, repeat_days = ?, updated_at = ? WHERE id = ?',
+        'UPDATE notes SET title = ?, content = ?, type = ?, reminder_at = ?, repeat_days = ?, is_pinned = ?, position = ?, updated_at = ? WHERE id = ?',
         updatedTitle,
         updatedContent,
         updatedType,
-        notifyVal,
         updatedReminderAt ?? null,
         updatedRepeatDays ?? null,
+        updatedIsPinned,
+        updatedPosition,
         now,
         id
     );
@@ -101,11 +97,21 @@ export const updateNote = async (
         title: updatedTitle,
         content: updatedContent,
         type: updatedType,
-        notify: updatedNotify,
         reminder_at: updatedReminderAt,
         repeat_days: updatedRepeatDays,
+        is_pinned: updatedIsPinned,
+        position: updatedPosition,
         updated_at: now
     };
+};
+
+export const updateNotePositions = async (positions: { id: string; position: number }[]): Promise<void> => {
+    const db = await getDb();
+    await db.withTransactionAsync(async () => {
+        for (const item of positions) {
+            await db.runAsync('UPDATE notes SET position = ? WHERE id = ?', item.position, item.id);
+        }
+    });
 };
 
 export const deleteNote = async (id: string): Promise<void> => {
@@ -133,8 +139,5 @@ export const searchNotes = async (query: string, limit: number, offset: number =
         offset
     );
 
-    return results.map(row => ({
-        ...row,
-        notify: !!row.notify
-    }));
+    return results;
 };

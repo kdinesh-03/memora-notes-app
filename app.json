@@ -1,25 +1,25 @@
 {
     "expo": {
-        "name": "Notes",
-        "slug": "notes",
+        "name": "Memora",
+        "slug": "memora",
         "version": "1.0.0",
         "orientation": "portrait",
         "icon": "./src/assets/images/icon.png",
-        "scheme": "notes",
+        "scheme": "memora",
         "userInterfaceStyle": "dark",
         "ios": {
             "icon": "./src/assets/expo.icon",
-            "bundleIdentifier": "com.notes.app"
+            "bundleIdentifier": "com.memora.app"
         },
         "android": {
             "adaptiveIcon": {
-                "backgroundColor": "#000",
+                "backgroundColor": "#000000",
                 "foregroundImage": "./src/assets/images/android-icon-foreground.png",
                 "backgroundImage": "./src/assets/images/android-icon-background.png",
                 "monochromeImage": "./src/assets/images/android-icon-monochrome.png"
             },
             "predictiveBackGestureEnabled": false,
-            "package": "com.notes.app"
+            "package": "com.memora.app"
         },
         "web": {
             "output": "static",
@@ -40,7 +40,9 @@
             [
                 "expo-font",
                 {
-                    "fonts": ["./src/assets/fonts"]
+                    "fonts": [
+                        "./src/assets/fonts"
+                    ]
                 }
             ],
             "expo-sqlite",
@@ -52,7 +54,9 @@
                     "icon": "./src/assets/images/icon.png",
                     "color": "#ffffff",
                     "defaultChannel": "default",
-                    "sounds": ["./src/assets/sounds/notification.wav"],
+                    "sounds": [
+                        "./src/assets/sounds/notification.wav"
+                    ],
                     "enableBackgroundRemoteNotifications": false
                 }
             ]

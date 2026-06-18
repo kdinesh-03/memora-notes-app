@@ -13,13 +13,11 @@ export const NoteEditorScreen = () => {
         title,
         content,
         noteType,
-        notify,
         reminderAt,
         repeatDays,
         handleTitleChange,
         handleContentChange,
         toggleType,
-        toggleNotify,
         toggleRepeatDay,
         setReminderAt,
         loading,
@@ -117,16 +115,6 @@ export const NoteEditorScreen = () => {
 
                 {noteType === 'reminder' && (
                     <View style={styles.reminderSettings}>
-                        <View style={styles.reminderRow}>
-                            <Text style={styles.reminderLabel}>Notify Me</Text>
-                            <Switch
-                                value={notify}
-                                onValueChange={toggleNotify}
-                                trackColor={{ false: '#333', true: '#007AFF' }}
-                                thumbColor={notify ? '#FFF' : '#AAA'}
-                            />
-                        </View>
-
                         <View style={styles.reminderRow}>
                             <Text style={styles.reminderLabel}>Remind At</Text>
                             <Pressable
@@ -301,7 +289,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#1c1c1e',
         borderRadius: 12,
         padding: 16,
-        gap: 16,
+        gap: 8,
     },
     reminderRow: {
         flexDirection: 'row',

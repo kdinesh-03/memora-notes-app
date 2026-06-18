@@ -98,15 +98,25 @@ export const useNotes = () => {
 
     const handleToggleReminder = async (note: Note) => {
         try {
-            const updatedNote = await updateNoteUseCase(note.id, undefined, undefined, undefined, !note.notify);
+            const updatedNote = await updateNoteUseCase(note.id, undefined, undefined, undefined);
             updateNote(updatedNote);
             await scheduleNoteNotifications(updatedNote);
-            if (!updatedNote.notify) {
-                Toast.show({ message: 'Reminder turned off' });
-            }
+
         } catch (error) {
             console.error('Failed to toggle reminder:', error);
             Toast.show({ message: 'Failed to update reminder' });
+        }
+    };
+
+    const handleTogglePin = async (note: Note) => {
+        try {
+            const nextPinned = (note.is_pinned ?? 0) === 1 ? 0 : 1;
+            const updatedNote = await updateNoteUseCase(note.id, undefined, undefined, undefined, undefined, undefined, nextPinned);
+            updateNote(updatedNote);
+            Toast.show({ message: nextPinned === 1 ? 'Note pinned' : 'Note unpinned' });
+        } catch (error) {
+            console.error('Failed to toggle pin:', error);
+            Toast.show({ message: 'Failed to toggle pin' });
         }
     };
 
@@ -123,5 +133,6 @@ export const useNotes = () => {
         onLoadMore,
         handleDelete,
         handleToggleReminder,
+        handleTogglePin,
     };
 };

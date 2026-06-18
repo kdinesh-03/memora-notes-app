@@ -12,7 +12,6 @@ export const useNoteEditor = (id?: string) => {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [noteType, setNoteType] = useState<'note' | 'reminder'>('note');
-    const [notify, setNotify] = useState(false);
     const [reminderAt, setReminderAt] = useState<number | undefined>(undefined);
     const [repeatDays, setRepeatDays] = useState<string | undefined>(undefined);
     const [loading, setLoading] = useState(false);
@@ -28,7 +27,6 @@ export const useNoteEditor = (id?: string) => {
                     setTitle(note.title);
                     setContent(note.content);
                     setNoteType(note.type);
-                    setNotify(note.notify);
                     setReminderAt(note.reminder_at);
                     setRepeatDays(note.repeat_days);
                     setIsRepeatDaysModified(true);
@@ -61,12 +59,12 @@ export const useNoteEditor = (id?: string) => {
             }
 
             if (noteIdRef.current) {
-                const updated = await updateNoteUseCase(noteIdRef.current, title, content, noteType, notify, reminderAt, repeatDays);
+                const updated = await updateNoteUseCase(noteIdRef.current, title, content, noteType, reminderAt, repeatDays);
                 updateNote(updated);
                 await scheduleNoteNotifications(updated);
                 Toast.show({ message: `${noteType === 'note' ? 'Note' : 'Reminder'} updated successfully` });
             } else {
-                const newNote = await createNoteUseCase(title, content, noteType, notify, reminderAt, repeatDays);
+                const newNote = await createNoteUseCase(title, content, noteType, reminderAt, repeatDays);
                 noteIdRef.current = newNote.id;
                 addNote(newNote);
                 await scheduleNoteNotifications(newNote);
@@ -102,17 +100,6 @@ export const useNoteEditor = (id?: string) => {
         });
     };
 
-    const toggleNotify = async () => {
-        if (!notify) {
-            const granted = await requestNotificationPermissions();
-            if (!granted) {
-                Toast.show({ message: 'Notification permission is required for reminders' });
-                return;
-            }
-        }
-        setNotify(prev => !prev);
-    };
-
     const toggleRepeatDay = (dayIndex: number) => {
         setIsRepeatDaysModified(true);
         setRepeatDays(prev => {
@@ -131,7 +118,6 @@ export const useNoteEditor = (id?: string) => {
         title,
         content,
         noteType,
-        notify,
         reminderAt,
         repeatDays,
         loading,
@@ -139,7 +125,6 @@ export const useNoteEditor = (id?: string) => {
         handleTitleChange,
         handleContentChange,
         toggleType,
-        toggleNotify,
         toggleRepeatDay,
         setReminderAt,
         handleSave,

@@ -1,91 +1,33 @@
-import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';
 import debounce from 'lodash.debounce';
-import { Bell, Search, Trash2, X } from 'lucide-react-native';
-import { memo, useCallback, useState } from 'react';
+import { Search, X } from 'lucide-react-native';
+import { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
     Pressable,
+    ScrollView,
     StyleSheet,
-    Switch,
     Text,
     TextInput,
-    View
+    View,
+    RefreshControl
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../../../shared/store/useStore';
 import { fonts } from '../../../shared/utils/fonts';
-import { Note } from '../../domain/entities/Note';
 import { useNotes } from '../hooks/useNotes';
-
-type ListItem =
-    | { type: 'header', title: string }
-    | { type: 'note', data: Note };
-
-const NoteItem = memo(
-    ({
-        note,
-        onPress,
-        onDelete,
-        onToggleReminder,
-        darkStyles,
-    }: {
-        note: Note;
-        onPress: (id: string) => void;
-        onDelete: (id: string, type: 'note' | 'reminder') => void;
-        onToggleReminder: (note: Note) => void;
-        darkStyles: any;
-    }) => (
-        <Pressable
-            style={[styles.noteCard, darkStyles.card]}
-            onPress={() => onPress(note.id)}
-        >
-            <View style={styles.titleContainer}>
-                <Text style={[styles.noteTitle, darkStyles.text]} numberOfLines={1}>
-                    {note.title || 'Untitled'}
-                </Text>
-                {note.type === 'reminder' && (
-                    <Switch
-                        value={note.notify || false}
-                        onValueChange={() => onToggleReminder(note)}
-                        trackColor={{ false: '#333', true: '#007AFF' }}
-                        thumbColor={note.notify ? '#FFF' : '#AAA'}
-                    />
-                )}
-            </View>
-            <Text style={[styles.noteSnippet, darkStyles.snippet]} numberOfLines={2}>
-                {note.content || 'No content'}
-            </Text>
-            <View style={styles.footer}>
-                <View style={styles.footerLeft}>
-                    {note.type === 'reminder' ? (
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Bell size={14} color="#FFD60A" fill="#FFD60A" />
-                            {note.reminder_at && (
-                                <Text style={[styles.noteDate, { marginLeft: 6, color: '#FFD60A' }]}>
-                                    {new Date(note.reminder_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                                </Text>
-                            )}
-                        </View>
-                    ) : (
-                        <Text style={styles.noteDate}>
-                            {new Date(note.updated_at).toLocaleDateString()}
-                        </Text>
-                    )}
-                </View>
-                <Pressable
-                    onPress={() => onDelete(note.id, note.type)}
-                    hitSlop={10}
-                >
-                    <Trash2 size={16} color="#FF3B30" />
-                </Pressable>
-            </View>
-        </Pressable>
-    )
-);
+import { NoteItem } from '../components/NoteItem';
+import { SwipeableNote } from '../components/SwipeableNote';
 
 export const NotesListScreen = () => {
-    const { notes, refreshing, onRefresh, onLoadMore, loading, handleDelete, handleToggleReminder } = useNotes();
+    const { 
+        notes, 
+        refreshing, 
+        onRefresh, 
+        loading, 
+        handleDelete, 
+        handleTogglePin 
+    } = useNotes();
     const { searchQuery, setSearchQuery } = useStore();
     const [localSearch, setLocalSearch] = useState(searchQuery);
     const { bottom, top } = useSafeAreaInsets();
@@ -107,89 +49,139 @@ export const NotesListScreen = () => {
         setSearchQuery('');
     };
 
-    const reminders = notes.filter(n => n.type === 'reminder');
-    const regularNotes = notes.filter(n => n.type === 'note');
+    // Partition the notes for unified sections
+    const pinnedNotes = notes.filter(n => n.is_pinned === 1);
+    const unpinnedNotes = notes.filter(n => n.is_pinned !== 1);
 
-    const listData: ListItem[] = [];
-    if (reminders.length > 0) {
-        listData.push({ type: 'header', title: 'Reminders' });
-        listData.push(...reminders.map(n => ({ type: 'note' as const, data: n })));
-    }
-    if (regularNotes.length > 0) {
-        listData.push({ type: 'header', title: 'Recent Notes' });
-        listData.push(...regularNotes.map(n => ({ type: 'note' as const, data: n })));
-    }
+    const upcomingReminders = unpinnedNotes.filter(n => n.type === 'reminder' && n.reminder_at && n.reminder_at > Date.now());
+    const recentNotes = unpinnedNotes.filter(n => !(n.type === 'reminder' && n.reminder_at && n.reminder_at > Date.now()));
+
+    const handlePress = (id: string) => {
+        router.push({ pathname: '/editor', params: { id } });
+    };
+
+    const isSearching = searchQuery.trim().length > 0;
 
     return (
         <View style={[styles.container, darkStyles.container, { paddingTop: top }]}>
-            <FlashList
-                data={listData}
-                keyExtractor={(item) => item.type === 'header' ? `header-${item.title}` : `note-${item.data.id}`}
-                renderItem={({ item }) => {
-                    if (item.type === 'header') {
-                        return (
-                            <View style={styles.sectionHeader}>
-                                <Text style={[styles.sectionTitle, darkStyles.sectionTitle]}>{item.title}</Text>
-                            </View>
-                        );
-                    }
-                    return (
-                        <NoteItem
-                            note={item.data}
-                            darkStyles={darkStyles}
-                            onPress={(id) => router.push({ pathname: '/editor', params: { id } })}
-                            onDelete={handleDelete}
-                            onToggleReminder={handleToggleReminder}
-                        />
-                    );
-                }}
-                onRefresh={onRefresh}
-                refreshing={refreshing}
-                onEndReached={onLoadMore}
-                onEndReachedThreshold={0.5}
-                keyboardShouldPersistTaps="handled"
-                getItemType={(item) => item.type}
-                ListHeaderComponent={(
-                    <>
-                        <View style={styles.header}>
-                            <Text style={[styles.headerTitle, darkStyles.text]}>My Notes</Text>
-                            <Pressable style={styles.fab} onPress={() => router.push('/editor')}>
-                                <Text style={styles.addText}>Add</Text>
-                            </Pressable>
-                        </View>
-                        <View style={[styles.searchBar, darkStyles.searchBar]}>
-                            <Search size={20} color={'#aaa'} />
-                            <TextInput
-                                placeholder="Search notes..."
-                                placeholderTextColor={'#aaa'}
-                                style={[styles.searchInput, darkStyles.text]}
-                                value={localSearch}
-                                onChangeText={handleSearchChange}
-                                returnKeyType="search"
-                            />
-                            {localSearch.length > 0 && (
-                                <Pressable onPress={handleClearSearch} style={styles.clearButton}>
-                                    <X size={18} color={'#aaa'} />
-                                </Pressable>
-                            )}
-                        </View>
-                    </>
+            <View style={styles.header}>
+                <Text style={[styles.headerTitle, darkStyles.text]}>My Notes</Text>
+                <Pressable style={styles.fab} onPress={() => router.push('/editor')}>
+                    <Text style={styles.addText}>Add</Text>
+                </Pressable>
+            </View>
+
+            <View style={[styles.searchBar, darkStyles.searchBar]}>
+                <Search size={20} color={'#aaa'} />
+                <TextInput
+                    placeholder="Search notes..."
+                    placeholderTextColor={'#aaa'}
+                    style={[styles.searchInput, darkStyles.text]}
+                    value={localSearch}
+                    onChangeText={handleSearchChange}
+                    returnKeyType="search"
+                />
+                {localSearch.length > 0 && (
+                    <Pressable onPress={handleClearSearch} style={styles.clearButton}>
+                        <X size={18} color={'#aaa'} />
+                    </Pressable>
                 )}
-                ListEmptyComponent={
-                    !loading ? (
-                        <View style={styles.emptyState}>
-                            <Text style={[darkStyles.text, fonts.fontRegular]}>No notes found. Create one!</Text>
-                        </View>
-                    ) : null
-                }
-                ListFooterComponent={
-                    loading && notes.length > 0 ? (
-                        <ActivityIndicator size={20} style={{ margin: 20 }} />
-                    ) : null
-                }
+            </View>
+
+            <ScrollView
                 contentContainerStyle={[styles.listContent, { paddingBottom: bottom }]}
                 showsVerticalScrollIndicator={false}
-            />
+                keyboardShouldPersistTaps="handled"
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#007AFF" />
+                }
+            >
+                {loading && notes.length === 0 ? (
+                    <ActivityIndicator size={20} style={{ margin: 20 }} />
+                ) : isSearching ? (
+                    notes.length > 0 ? (
+                        notes.map(note => (
+                            <SwipeableNote key={note.id} note={note} onDelete={handleDelete}>
+                                <NoteItem
+                                    note={note}
+                                    onPress={handlePress}
+                                    onTogglePin={handleTogglePin}
+                                    darkStyles={darkStyles}
+                                />
+                            </SwipeableNote>
+                        ))
+                    ) : (
+                        <View style={styles.emptyState}>
+                            <Text style={[darkStyles.text, fonts.fontRegular]}>No search results found.</Text>
+                        </View>
+                    )
+                ) : (
+                    <>
+                        {/* Pinned Section */}
+                        {pinnedNotes.length > 0 && (
+                            <View style={styles.sectionContainer}>
+                                <View style={styles.sectionHeader}>
+                                    <Text style={[styles.sectionTitle, darkStyles.sectionTitle]}>Pinned</Text>
+                                </View>
+                                {pinnedNotes.map(note => (
+                                    <SwipeableNote key={note.id} note={note} onDelete={handleDelete}>
+                                        <NoteItem
+                                            note={note}
+                                            onPress={handlePress}
+                                            onTogglePin={handleTogglePin}
+                                            darkStyles={darkStyles}
+                                        />
+                                    </SwipeableNote>
+                                ))}
+                            </View>
+                        )}
+
+                        {/* Upcoming Reminders Section */}
+                        {upcomingReminders.length > 0 && (
+                            <View style={styles.sectionContainer}>
+                                <View style={styles.sectionHeader}>
+                                    <Text style={[styles.sectionTitle, darkStyles.sectionTitle]}>Upcoming Reminders</Text>
+                                </View>
+                                {upcomingReminders.map(note => (
+                                    <SwipeableNote key={note.id} note={note} onDelete={handleDelete}>
+                                        <NoteItem
+                                            note={note}
+                                            onPress={handlePress}
+                                            onTogglePin={handleTogglePin}
+                                            darkStyles={darkStyles}
+                                        />
+                                    </SwipeableNote>
+                                ))}
+                            </View>
+                        )}
+
+                        {/* Recent Notes Section */}
+                        {recentNotes.length > 0 && (
+                            <View style={styles.sectionContainer}>
+                                <View style={styles.sectionHeader}>
+                                    <Text style={[styles.sectionTitle, darkStyles.sectionTitle]}>Recent Notes</Text>
+                                </View>
+                                {recentNotes.map(note => (
+                                    <SwipeableNote key={note.id} note={note} onDelete={handleDelete}>
+                                        <NoteItem
+                                            note={note}
+                                            onPress={handlePress}
+                                            onTogglePin={handleTogglePin}
+                                            darkStyles={darkStyles}
+                                        />
+                                    </SwipeableNote>
+                                ))}
+                            </View>
+                        )}
+
+                        {notes.length === 0 && (
+                            <View style={styles.emptyState}>
+                                <Text style={[darkStyles.text, fonts.fontRegular]}>No notes found. Create one!</Text>
+                            </View>
+                        )}
+                    </>
+                )}
+            </ScrollView>
         </View>
     );
 };
@@ -210,31 +202,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 12,
+        marginBottom: 16,
     },
     searchInput: { flex: 1, marginLeft: 8, fontSize: 16, ...fonts.fontRegular },
     clearButton: { padding: 4 },
     listContent: { flexGrow: 1 },
-    titleContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12
-    },
-    noteCard: {
-        padding: 16,
-        borderRadius: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
-        marginBottom: 12,
-        gap: 2
-    },
-    noteTitle: { flex: 1, fontSize: 18, ...fonts.fontSemiBold, marginBottom: 4 },
-    noteSnippet: { fontSize: 14, ...fonts.fontRegular, marginBottom: 8 },
-    footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    footerLeft: { flexDirection: 'row', alignItems: 'center' },
-    noteDate: { fontSize: 12, color: '#999', letterSpacing: 0.2, ...fonts.fontMedium, textTransform: 'uppercase' },
     fab: {
         backgroundColor: '#1c1c1e',
         paddingLeft: 16,
@@ -246,15 +218,19 @@ const styles = StyleSheet.create({
     },
     emptyState: {
         flex: 1,
+        paddingVertical: 40,
         justifyContent: 'center',
         alignItems: 'center',
     },
+    sectionContainer: {
+        marginBottom: 12
+    },
     sectionHeader: {
         backgroundColor: '#000',
-        paddingVertical: 16
+        paddingVertical: 12
     },
     sectionTitle: {
-        fontSize: 18,
+        fontSize: 14,
         ...fonts.fontBold,
         textTransform: 'uppercase',
         letterSpacing: 1,
@@ -270,7 +246,5 @@ const darkStyles = StyleSheet.create({
     container: { backgroundColor: '#000' },
     text: { color: '#FFF' },
     searchBar: { backgroundColor: '#1C1C1E' },
-    card: { backgroundColor: '#1C1C1E' },
-    snippet: { color: '#AAA' },
     sectionTitle: { color: '#007AFF' },
 });

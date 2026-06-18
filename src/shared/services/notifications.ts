@@ -27,7 +27,7 @@ const getExpoDay = (index: number): number | null => {
 };
 
 export const scheduleNoteNotifications = async (note: Note) => {
-    if (!note.notify || !note.reminder_at) {
+    if (note.type === 'note' || !note.reminder_at) {
         await cancelNoteNotifications(note.id);
         return;
     }

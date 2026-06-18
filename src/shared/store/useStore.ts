@@ -16,18 +16,30 @@ interface AppState {
     setHasMore: (hasMore: boolean) => void;
 }
 
+const sortNotes = (a: Note, b: Note) => {
+    const pinA = a.is_pinned ?? 0;
+    const pinB = b.is_pinned ?? 0;
+    if (pinA !== pinB) {
+        return pinB - pinA;
+    }
+    return b.updated_at - a.updated_at;
+};
+
 export const useStore = create<AppState>((set) => ({
     notes: [],
     loading: false,
     hasMore: true,
     searchQuery: '',
     setSearchQuery: (query) => set({ searchQuery: query }),
-    setNotes: (notes) => set({ notes }),
-    appendNotes: (newNotes) => set((state) => ({ notes: [...state.notes, ...newNotes] })),
-    addNote: (note) => set((state) => ({ notes: [note, ...state.notes] })),
+    setNotes: (notes) => set({ notes: [...notes].sort(sortNotes) }),
+    appendNotes: (newNotes) => set((state) => ({ 
+        notes: [...state.notes, ...newNotes].sort(sortNotes) 
+    })),
+    addNote: (note) => set((state) => ({ 
+        notes: [note, ...state.notes].sort(sortNotes) 
+    })),
     updateNote: (note) => set((state) => ({
-        notes: state.notes.map((n) => (n.id === note.id ? note : n))
-            .sort((a, b) => b.updated_at - a.updated_at)
+        notes: state.notes.map((n) => (n.id === note.id ? note : n)).sort(sortNotes)
     })),
     removeNote: (id) => set((state) => ({
         notes: state.notes.filter((n) => n.id !== id)

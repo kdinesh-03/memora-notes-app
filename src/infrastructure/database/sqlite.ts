@@ -17,10 +17,10 @@ export const initDb = async () => {
       title TEXT NOT NULL,
       content TEXT NOT NULL,
       type TEXT DEFAULT 'note',
-      notify INTEGER DEFAULT 0,
       reminder_at INTEGER,
       repeat_days TEXT,
-      is_reminder INTEGER DEFAULT 0,
+      is_pinned INTEGER DEFAULT 0,
+      position INTEGER DEFAULT 0,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
@@ -33,17 +33,18 @@ export const initDb = async () => {
 
     if (!cols.includes('type')) {
       await db.execAsync("ALTER TABLE notes ADD COLUMN type TEXT DEFAULT 'note';");
-      await db.execAsync("UPDATE notes SET type = 'reminder' WHERE is_reminder = 1;");
-    }
-    if (!cols.includes('notify')) {
-      await db.execAsync("ALTER TABLE notes ADD COLUMN notify INTEGER DEFAULT 0;");
-      await db.execAsync("UPDATE notes SET notify = 1 WHERE is_reminder = 1;");
     }
     if (!cols.includes('reminder_at')) {
       await db.execAsync("ALTER TABLE notes ADD COLUMN reminder_at INTEGER;");
     }
     if (!cols.includes('repeat_days')) {
       await db.execAsync("ALTER TABLE notes ADD COLUMN repeat_days TEXT;");
+    }
+    if (!cols.includes('is_pinned')) {
+      await db.execAsync("ALTER TABLE notes ADD COLUMN is_pinned INTEGER DEFAULT 0;");
+    }
+    if (!cols.includes('position')) {
+      await db.execAsync("ALTER TABLE notes ADD COLUMN position INTEGER DEFAULT 0;");
     }
   } catch (err) {
     console.error('Migration failed:', err);
