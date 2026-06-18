@@ -10,5 +10,5 @@ export default function Index() {
         >
             <NotesListScreen />
         </KeyboardAvoidingView>
-    )
+    );
 }

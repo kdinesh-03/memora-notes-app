@@ -8,15 +8,15 @@
         "scheme": "memora",
         "userInterfaceStyle": "dark",
         "ios": {
-            "icon": "./src/assets/expo.icon",
+            "icon": "./src/assets/images/icon.png",
             "bundleIdentifier": "com.memora.app"
         },
         "android": {
             "adaptiveIcon": {
                 "backgroundColor": "#000000",
-                "foregroundImage": "./src/assets/images/android-icon-foreground.png",
-                "backgroundImage": "./src/assets/images/android-icon-background.png",
-                "monochromeImage": "./src/assets/images/android-icon-monochrome.png"
+                "foregroundImage": "./src/assets/images/icon.png",
+                "backgroundImage": "./src/assets/images/icon.png",
+                "monochromeImage": "./src/assets/images/icon.png"
             },
             "predictiveBackGestureEnabled": false,
             "package": "com.memora.app"
@@ -30,19 +30,18 @@
             [
                 "expo-splash-screen",
                 {
-                    "backgroundColor": "#000",
+                    "backgroundColor": "#000000",
+                    "resizeMode": "cover",
                     "android": {
-                        "image": "./src/assets/images/splash-icon.png",
-                        "imageWidth": 76
+                        "image": "./src/assets/images/splashicon.png",
+                        "imageWidth": 200
                     }
                 }
             ],
             [
                 "expo-font",
                 {
-                    "fonts": [
-                        "./src/assets/fonts"
-                    ]
+                    "fonts": ["./src/assets/fonts"]
                 }
             ],
             "expo-sqlite",
@@ -52,12 +51,10 @@
                 "expo-notifications",
                 {
                     "icon": "./src/assets/images/icon.png",
-                    "color": "#ffffff",
+                    "color": "#000000",
                     "defaultChannel": "default",
-                    "sounds": [
-                        "./src/assets/sounds/notification.wav"
-                    ],
-                    "enableBackgroundRemoteNotifications": false
+                    "sounds": ["./src/assets/sounds/notification.wav"],
+                    "enableBackgroundRemoteNotifications": true
                 }
             ]
         ],

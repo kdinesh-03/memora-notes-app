@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { requestNotificationPermissions, scheduleNoteNotifications } from '../../../shared/services/notifications';
+import { scheduleNoteNotifications } from '../../../shared/services/notifications';
 import { useStore } from '../../../shared/store/useStore';
 import { createNoteUseCase } from '../../domain/usecases/createNote.usecase';
 import { getNoteByIdUseCase } from '../../domain/usecases/getNoteById.usecase';
@@ -13,10 +13,8 @@ export const useNoteEditor = (id?: string) => {
     const [content, setContent] = useState('');
     const [noteType, setNoteType] = useState<'note' | 'reminder'>('note');
     const [reminderAt, setReminderAt] = useState<number | undefined>(undefined);
-    const [repeatDays, setRepeatDays] = useState<string | undefined>(undefined);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [isRepeatDaysModified, setIsRepeatDaysModified] = useState(false);
     const noteIdRef = useRef<string | undefined>(id);
 
     useEffect(() => {
@@ -28,24 +26,11 @@ export const useNoteEditor = (id?: string) => {
                     setContent(note.content);
                     setNoteType(note.type);
                     setReminderAt(note.reminder_at);
-                    setRepeatDays(note.repeat_days);
-                    setIsRepeatDaysModified(true);
                 }
                 setLoading(false);
             });
         }
     }, [id]);
-
-    useEffect(() => {
-        if (noteType === 'reminder' && reminderAt && !loading && !isRepeatDaysModified) {
-            const date = new Date(reminderAt);
-            const dayIndex = date.getDay();
-            const chars = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-            const days = Array(7).fill('-');
-            days[dayIndex] = chars[dayIndex];
-            setRepeatDays(days.join(''));
-        }
-    }, [reminderAt, noteType, loading, isRepeatDaysModified]);
 
     const handleSave = async () => {
         if (!title.trim() && !content.trim()) return;
@@ -59,16 +44,26 @@ export const useNoteEditor = (id?: string) => {
             }
 
             if (noteIdRef.current) {
-                const updated = await updateNoteUseCase(noteIdRef.current, title, content, noteType, reminderAt, repeatDays);
+                const updated = await updateNoteUseCase(
+                    noteIdRef.current,
+                    title,
+                    content,
+                    noteType,
+                    reminderAt
+                );
                 updateNote(updated);
                 await scheduleNoteNotifications(updated);
-                Toast.show({ message: `${noteType === 'note' ? 'Note' : 'Reminder'} updated successfully` });
+                Toast.show({
+                    message: `${noteType === 'note' ? 'Note' : 'Reminder'} updated successfully`,
+                });
             } else {
-                const newNote = await createNoteUseCase(title, content, noteType, reminderAt, repeatDays);
+                const newNote = await createNoteUseCase(title, content, noteType, reminderAt);
                 noteIdRef.current = newNote.id;
                 addNote(newNote);
                 await scheduleNoteNotifications(newNote);
-                Toast.show({ message: `${noteType === 'note' ? 'Note' : 'Reminder'} created successfully` });
+                Toast.show({
+                    message: `${noteType === 'note' ? 'Note' : 'Reminder'} created successfully`,
+                });
             }
             router.back();
         } catch (error) {
@@ -88,7 +83,7 @@ export const useNoteEditor = (id?: string) => {
     };
 
     const toggleType = () => {
-        setNoteType(prev => {
+        setNoteType((prev) => {
             const newType = prev === 'note' ? 'reminder' : 'note';
             if (newType === 'reminder' && !reminderAt) {
                 const now = new Date();
@@ -100,32 +95,16 @@ export const useNoteEditor = (id?: string) => {
         });
     };
 
-    const toggleRepeatDay = (dayIndex: number) => {
-        setIsRepeatDaysModified(true);
-        setRepeatDays(prev => {
-            const days = prev ? prev.split('') : '-------'.split('');
-            const chars = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-            if (days[dayIndex] === '-') {
-                days[dayIndex] = chars[dayIndex];
-            } else {
-                days[dayIndex] = '-';
-            }
-            return days.join('');
-        });
-    };
-
     return {
         title,
         content,
         noteType,
         reminderAt,
-        repeatDays,
         loading,
         saving,
         handleTitleChange,
         handleContentChange,
         toggleType,
-        toggleRepeatDay,
         setReminderAt,
         handleSave,
     };

@@ -5,8 +5,7 @@ export const createNoteUseCase = async (
     title: string,
     content: string,
     type: 'note' | 'reminder' = 'note',
-    reminderAt?: number,
-    repeatDays?: string
+    reminderAt?: number
 ): Promise<Note> => {
-    return await notesRepository.createNote(title, content, type, reminderAt, repeatDays);
+    return await notesRepository.createNote(title, content, type, reminderAt);
 };

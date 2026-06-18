@@ -89,14 +89,20 @@ export const Toast: ToastComponent = ({ message }) => {
                         padding: 16,
                         borderRadius: 8,
                         borderWidth: 1,
-                        borderColor: "#333",
+                        borderColor: '#333',
                         borderLeftWidth: 3,
-                        borderLeftColor: "#007AFF",
-                        backgroundColor: '#1C1C1E'
+                        borderLeftColor: '#007AFF',
+                        backgroundColor: '#1C1C1E',
                     }}
                 >
                     <Text
-                        style={{ flex: 1, fontSize: 15, color: '#fff', letterSpacing: 0.2, ...fonts.fontMedium }}
+                        style={{
+                            flex: 1,
+                            fontSize: 15,
+                            color: '#fff',
+                            letterSpacing: 0.2,
+                            ...fonts.fontMedium,
+                        }}
                         numberOfLines={2}
                     >
                         {message}

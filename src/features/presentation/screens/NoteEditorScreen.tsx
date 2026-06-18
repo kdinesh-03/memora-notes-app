@@ -2,7 +2,16 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import { router, useLocalSearchParams } from 'expo-router';
 import { Calendar, ChevronLeft } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import {
+    ActivityIndicator,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts } from '../../../shared/utils/fonts';
 import { useNoteEditor } from '../hooks/useNoteEditor';
@@ -14,15 +23,13 @@ export const NoteEditorScreen = () => {
         content,
         noteType,
         reminderAt,
-        repeatDays,
         handleTitleChange,
         handleContentChange,
         toggleType,
-        toggleRepeatDay,
         setReminderAt,
         loading,
         saving,
-        handleSave
+        handleSave,
     } = useNoteEditor(id);
     const { bottom, top } = useSafeAreaInsets();
     const [showPicker, setShowPicker] = useState(false);
@@ -39,7 +46,11 @@ export const NoteEditorScreen = () => {
         if (!timestamp) return 'Select Date & Time';
         const date = new Date(timestamp);
         const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+        const timeStr = date.toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+        });
         return `${dateStr}, ${timeStr.toUpperCase()}`;
     };
 
@@ -55,25 +66,33 @@ export const NoteEditorScreen = () => {
         <View style={{ flex: 1, backgroundColor: '#000', paddingTop: top }}>
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={[styles.container, darkStyles.container, { paddingBottom: bottom }]}
+                contentContainerStyle={[
+                    styles.container,
+                    darkStyles.container,
+                    { paddingBottom: bottom },
+                ]}
                 keyboardShouldPersistTaps="handled"
             >
                 <View style={styles.header}>
                     <Pressable onPress={router.back} style={styles.backButton}>
                         <ChevronLeft color={'#FFF'} size={28} />
-                        <Text
-                            style={[styles.backText, { color: '#FFF' }]}
-                        >
-                            Back
-                        </Text>
+                        <Text style={[styles.backText, { color: '#FFF' }]}>Back</Text>
                     </Pressable>
 
                     <View style={styles.headerActions}>
                         <Pressable
-                            style={[styles.typeButton, noteType === 'reminder' && styles.typeButtonActive]}
+                            style={[
+                                styles.typeButton,
+                                noteType === 'reminder' && styles.typeButtonActive,
+                            ]}
                             onPress={toggleType}
                         >
-                            <Text style={[styles.typeText, noteType === 'reminder' && styles.typeTextActive]}>
+                            <Text
+                                style={[
+                                    styles.typeText,
+                                    noteType === 'reminder' && styles.typeTextActive,
+                                ]}
+                            >
                                 {noteType === 'reminder' ? 'Reminder' : 'Note'}
                             </Text>
                         </Pressable>
@@ -131,32 +150,6 @@ export const NoteEditorScreen = () => {
                             </Pressable>
                         </View>
 
-                        <View style={styles.repeatRow}>
-                            <Text style={styles.reminderLabel}>Repeat</Text>
-                            <View style={styles.daysContainer}>
-                                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => {
-                                    const isSelected = repeatDays ? repeatDays[index] !== '-' : false;
-                                    return (
-                                        <Pressable
-                                            key={index}
-                                            style={[
-                                                styles.dayButton,
-                                                isSelected && styles.dayButtonActive
-                                            ]}
-                                            onPress={() => toggleRepeatDay(index)}
-                                        >
-                                            <Text style={[
-                                                styles.dayText,
-                                                isSelected && styles.dayTextActive
-                                            ]}>
-                                                {day}
-                                            </Text>
-                                        </Pressable>
-                                    );
-                                })}
-                            </View>
-                        </View>
-
                         {showPicker && (
                             <>
                                 <DateTimePicker
@@ -176,7 +169,11 @@ export const NoteEditorScreen = () => {
                                             const newDate = new Date(reminderAt || Date.now());
                                             if (Platform.OS === 'android') {
                                                 if (pickerMode === 'date') {
-                                                    newDate.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+                                                    newDate.setFullYear(
+                                                        date.getFullYear(),
+                                                        date.getMonth(),
+                                                        date.getDate()
+                                                    );
                                                     setReminderAt(newDate.getTime());
                                                     setShowPicker(false);
                                                     setTimeout(() => {
@@ -184,7 +181,12 @@ export const NoteEditorScreen = () => {
                                                         setShowPicker(true);
                                                     }, 100);
                                                 } else {
-                                                    newDate.setHours(date.getHours(), date.getMinutes(), 0, 0);
+                                                    newDate.setHours(
+                                                        date.getHours(),
+                                                        date.getMinutes(),
+                                                        0,
+                                                        0
+                                                    );
                                                     setReminderAt(newDate.getTime());
                                                     setShowPicker(false);
                                                     setPickerMode('date');
@@ -258,7 +260,7 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         borderWidth: 1,
         borderColor: '#333',
-        overflow: "hidden"
+        overflow: 'hidden',
     },
     reminderText: {
         color: '#AAA',
@@ -311,7 +313,7 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 18,
         lineHeight: 24,
-        ...fonts.fontRegular
+        ...fonts.fontRegular,
     },
     datePickerButton: {
         flexDirection: 'row',
@@ -326,7 +328,6 @@ const styles = StyleSheet.create({
         color: '#007AFF',
         fontSize: 14,
         ...fonts.fontMedium,
-        // textTransform: 'capitalize'
     },
     doneButton: {
         alignSelf: 'flex-end',

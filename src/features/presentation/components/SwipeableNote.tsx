@@ -11,11 +11,7 @@ interface SwipeableNoteProps {
     children: React.ReactNode;
 }
 
-export const SwipeableNote = ({
-    note,
-    onDelete,
-    children
-}: SwipeableNoteProps) => {
+export const SwipeableNote = ({ note, onDelete, children }: SwipeableNoteProps) => {
     const swipeableRef = useRef<SwipeableMethods | null>(null);
 
     const renderRightActions = () => {

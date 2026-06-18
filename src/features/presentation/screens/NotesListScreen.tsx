@@ -10,7 +10,7 @@ import {
     Text,
     TextInput,
     View,
-    RefreshControl
+    RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../../../shared/store/useStore';
@@ -20,14 +20,7 @@ import { NoteItem } from '../components/NoteItem';
 import { SwipeableNote } from '../components/SwipeableNote';
 
 export const NotesListScreen = () => {
-    const { 
-        notes, 
-        refreshing, 
-        onRefresh, 
-        loading, 
-        handleDelete, 
-        handleTogglePin 
-    } = useNotes();
+    const { notes, refreshing, onRefresh, loading, handleDelete, handleTogglePin } = useNotes();
     const { searchQuery, setSearchQuery } = useStore();
     const [localSearch, setLocalSearch] = useState(searchQuery);
     const { bottom, top } = useSafeAreaInsets();
@@ -49,12 +42,15 @@ export const NotesListScreen = () => {
         setSearchQuery('');
     };
 
-    // Partition the notes for unified sections
-    const pinnedNotes = notes.filter(n => n.is_pinned === 1);
-    const unpinnedNotes = notes.filter(n => n.is_pinned !== 1);
+    const pinnedNotes = notes.filter((n) => n.is_pinned === 1);
+    const unpinnedNotes = notes.filter((n) => n.is_pinned !== 1);
 
-    const upcomingReminders = unpinnedNotes.filter(n => n.type === 'reminder' && n.reminder_at && n.reminder_at > Date.now());
-    const recentNotes = unpinnedNotes.filter(n => !(n.type === 'reminder' && n.reminder_at && n.reminder_at > Date.now()));
+    const upcomingReminders = unpinnedNotes.filter(
+        (n) => n.type === 'reminder' && n.reminder_at && n.reminder_at > Date.now()
+    );
+    const recentNotes = unpinnedNotes.filter(
+        (n) => !(n.type === 'reminder' && n.reminder_at && n.reminder_at > Date.now())
+    );
 
     const handlePress = (id: string) => {
         router.push({ pathname: '/editor', params: { id } });
@@ -65,7 +61,7 @@ export const NotesListScreen = () => {
     return (
         <View style={[styles.container, darkStyles.container, { paddingTop: top }]}>
             <View style={styles.header}>
-                <Text style={[styles.headerTitle, darkStyles.text]}>My Notes</Text>
+                <Text style={[styles.headerTitle, darkStyles.text]}>Memora</Text>
                 <Pressable style={styles.fab} onPress={() => router.push('/editor')}>
                     <Text style={styles.addText}>Add</Text>
                 </Pressable>
@@ -93,81 +89,98 @@ export const NotesListScreen = () => {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#007AFF" />
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor="#007AFF"
+                    />
                 }
             >
                 {loading && notes.length === 0 ? (
                     <ActivityIndicator size={20} style={{ margin: 20 }} />
                 ) : isSearching ? (
                     notes.length > 0 ? (
-                        notes.map(note => (
+                        notes.map((note) => (
                             <SwipeableNote key={note.id} note={note} onDelete={handleDelete}>
                                 <NoteItem
                                     note={note}
                                     onPress={handlePress}
                                     onTogglePin={handleTogglePin}
-                                    darkStyles={darkStyles}
                                 />
                             </SwipeableNote>
                         ))
                     ) : (
                         <View style={styles.emptyState}>
-                            <Text style={[darkStyles.text, fonts.fontRegular]}>No search results found.</Text>
+                            <Text style={[darkStyles.text, fonts.fontRegular]}>
+                                No search results found.
+                            </Text>
                         </View>
                     )
                 ) : (
                     <>
-                        {/* Pinned Section */}
                         {pinnedNotes.length > 0 && (
                             <View style={styles.sectionContainer}>
                                 <View style={styles.sectionHeader}>
-                                    <Text style={[styles.sectionTitle, darkStyles.sectionTitle]}>Pinned</Text>
+                                    <Text style={[styles.sectionTitle, darkStyles.sectionTitle]}>
+                                        Pinned
+                                    </Text>
                                 </View>
-                                {pinnedNotes.map(note => (
-                                    <SwipeableNote key={note.id} note={note} onDelete={handleDelete}>
+                                {pinnedNotes.map((note) => (
+                                    <SwipeableNote
+                                        key={note.id}
+                                        note={note}
+                                        onDelete={handleDelete}
+                                    >
                                         <NoteItem
                                             note={note}
                                             onPress={handlePress}
                                             onTogglePin={handleTogglePin}
-                                            darkStyles={darkStyles}
                                         />
                                     </SwipeableNote>
                                 ))}
                             </View>
                         )}
 
-                        {/* Upcoming Reminders Section */}
                         {upcomingReminders.length > 0 && (
                             <View style={styles.sectionContainer}>
                                 <View style={styles.sectionHeader}>
-                                    <Text style={[styles.sectionTitle, darkStyles.sectionTitle]}>Upcoming Reminders</Text>
+                                    <Text style={[styles.sectionTitle, darkStyles.sectionTitle]}>
+                                        Upcoming Reminders
+                                    </Text>
                                 </View>
-                                {upcomingReminders.map(note => (
-                                    <SwipeableNote key={note.id} note={note} onDelete={handleDelete}>
+                                {upcomingReminders.map((note) => (
+                                    <SwipeableNote
+                                        key={note.id}
+                                        note={note}
+                                        onDelete={handleDelete}
+                                    >
                                         <NoteItem
                                             note={note}
                                             onPress={handlePress}
                                             onTogglePin={handleTogglePin}
-                                            darkStyles={darkStyles}
                                         />
                                     </SwipeableNote>
                                 ))}
                             </View>
                         )}
 
-                        {/* Recent Notes Section */}
                         {recentNotes.length > 0 && (
                             <View style={styles.sectionContainer}>
                                 <View style={styles.sectionHeader}>
-                                    <Text style={[styles.sectionTitle, darkStyles.sectionTitle]}>Recent Notes</Text>
+                                    <Text style={[styles.sectionTitle, darkStyles.sectionTitle]}>
+                                        Recent Notes
+                                    </Text>
                                 </View>
-                                {recentNotes.map(note => (
-                                    <SwipeableNote key={note.id} note={note} onDelete={handleDelete}>
+                                {recentNotes.map((note) => (
+                                    <SwipeableNote
+                                        key={note.id}
+                                        note={note}
+                                        onDelete={handleDelete}
+                                    >
                                         <NoteItem
                                             note={note}
                                             onPress={handlePress}
                                             onTogglePin={handleTogglePin}
-                                            darkStyles={darkStyles}
                                         />
                                     </SwipeableNote>
                                 ))}
@@ -176,7 +189,9 @@ export const NotesListScreen = () => {
 
                         {notes.length === 0 && (
                             <View style={styles.emptyState}>
-                                <Text style={[darkStyles.text, fonts.fontRegular]}>No notes found. Create one!</Text>
+                                <Text style={[darkStyles.text, fonts.fontRegular]}>
+                                    No notes found. Create one!
+                                </Text>
                             </View>
                         )}
                     </>
@@ -223,11 +238,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     sectionContainer: {
-        marginBottom: 12
+        marginBottom: 12,
     },
     sectionHeader: {
         backgroundColor: '#000',
-        paddingVertical: 12
+        paddingVertical: 12,
     },
     sectionTitle: {
         fontSize: 14,

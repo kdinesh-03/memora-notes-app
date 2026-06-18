@@ -4,9 +4,7 @@ export interface Note {
     content: string;
     type: 'note' | 'reminder';
     reminder_at?: number;
-    repeat_days?: string;
     is_pinned?: number;
-    position?: number;
     created_at: number;
     updated_at: number;
 }

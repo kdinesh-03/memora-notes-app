@@ -3,7 +3,6 @@ import { Note } from '../../features/domain/entities/Note';
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
-        shouldShowAlert: true,
         shouldPlaySound: true,
         shouldSetBadge: false,
         shouldShowBanner: true,
@@ -21,30 +20,22 @@ export const requestNotificationPermissions = async () => {
     return finalStatus === 'granted';
 };
 
-const getExpoDay = (index: number): number | null => {
-    const days = [1, 2, 3, 4, 5, 6, 7];
-    return days[index];
-};
-
 export const scheduleNoteNotifications = async (note: Note) => {
-    if (note.type === 'note' || !note.reminder_at) {
+    try {
+        if (note.type === 'note' || !note.reminder_at) {
+            return null;
+        }
+
         await cancelNoteNotifications(note.id);
-        return;
-    }
 
-    await cancelNoteNotifications(note.id);
+        const date = new Date(note.reminder_at);
+        date.setSeconds(0);
+        date.setMilliseconds(0);
 
-    const date = new Date(note.reminder_at);
-    date.setSeconds(0);
-    date.setMilliseconds(0);
-    const hour = date.getHours();
-    const minute = date.getMinutes();
+        const reminderTimeId = `reminder-${note.id}`;
+        const reminderTimeId15 = `reminder-${note.id}-15`;
 
-    const reminderTimeId = `reminder-${note.id}`;
-    const reminderTimeId15 = `reminder-${note.id}-15`;
-
-    if (!note.repeat_days || note.repeat_days.trim() === '') {
-        if (note.reminder_at > Date.now()) {
+        if (date.getTime() > Date.now()) {
             await Notifications.scheduleNotificationAsync({
                 identifier: reminderTimeId,
                 content: {
@@ -58,7 +49,9 @@ export const scheduleNoteNotifications = async (note: Note) => {
                 } as any,
             });
 
-            const fifteenBefore = new Date(note.reminder_at - 15 * 60 * 1000);
+            // ✅ FIX HERE ALSO
+            const fifteenBefore = new Date(date.getTime() - 15 * 60 * 1000);
+
             if (fifteenBefore.getTime() > Date.now()) {
                 await Notifications.scheduleNotificationAsync({
                     identifier: reminderTimeId15,
@@ -74,58 +67,11 @@ export const scheduleNoteNotifications = async (note: Note) => {
                 });
             }
         }
-    } else {
-        const daysChars = note.repeat_days.split('');
-        for (let i = 0; i < daysChars.length; i++) {
-            const char = daysChars[i];
-            if (char !== '-') {
-                const weekday = getExpoDay(i);
-                if (weekday) {
-                    await Notifications.scheduleNotificationAsync({
-                        identifier: `${reminderTimeId}-${i}`,
-                        content: {
-                            title: 'Reminder',
-                            body: note.title || 'You have a reminder',
-                            data: { noteId: note.id },
-                        },
-                        trigger: {
-                            type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
-                            weekday,
-                            hour,
-                            minute,
-                        } as any,
-                    });
 
-                    let prevHour = hour;
-                    let prevMinute = minute - 15;
-                    if (prevMinute < 0) {
-                        prevMinute += 60;
-                        prevHour -= 1;
-                    }
-                    let adjustedWeekday = weekday;
-                    if (prevHour < 0) {
-                        prevHour += 24;
-                        adjustedWeekday = weekday - 1;
-                        if (adjustedWeekday < 1) adjustedWeekday = 7;
-                    }
-
-                    await Notifications.scheduleNotificationAsync({
-                        identifier: `${reminderTimeId15}-${i}`,
-                        content: {
-                            title: 'Upcoming Reminder',
-                            body: `In 15 mins: ${note.title}`,
-                            data: { noteId: note.id },
-                        },
-                        trigger: {
-                            type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
-                            weekday: adjustedWeekday,
-                            hour: prevHour,
-                            minute: prevMinute,
-                        } as any,
-                    });
-                }
-            }
-        }
+        return { reminderTimeId, reminderTimeId15 };
+    } catch (error) {
+        console.error('❌ Schedule error:', error);
+        return null;
     }
 };
 

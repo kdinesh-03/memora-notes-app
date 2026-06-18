@@ -32,18 +32,22 @@ export const useStore = create<AppState>((set) => ({
     searchQuery: '',
     setSearchQuery: (query) => set({ searchQuery: query }),
     setNotes: (notes) => set({ notes: [...notes].sort(sortNotes) }),
-    appendNotes: (newNotes) => set((state) => ({ 
-        notes: [...state.notes, ...newNotes].sort(sortNotes) 
-    })),
-    addNote: (note) => set((state) => ({ 
-        notes: [note, ...state.notes].sort(sortNotes) 
-    })),
-    updateNote: (note) => set((state) => ({
-        notes: state.notes.map((n) => (n.id === note.id ? note : n)).sort(sortNotes)
-    })),
-    removeNote: (id) => set((state) => ({
-        notes: state.notes.filter((n) => n.id !== id)
-    })),
+    appendNotes: (newNotes) =>
+        set((state) => ({
+            notes: [...state.notes, ...newNotes].sort(sortNotes),
+        })),
+    addNote: (note) =>
+        set((state) => ({
+            notes: [note, ...state.notes].sort(sortNotes),
+        })),
+    updateNote: (note) =>
+        set((state) => ({
+            notes: state.notes.map((n) => (n.id === note.id ? note : n)).sort(sortNotes),
+        })),
+    removeNote: (id) =>
+        set((state) => ({
+            notes: state.notes.filter((n) => n.id !== id),
+        })),
     setLoading: (loading) => set({ loading }),
     setHasMore: (hasMore) => set({ hasMore }),
 }));

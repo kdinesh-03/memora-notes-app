@@ -7,9 +7,7 @@ export const updateNoteUseCase = async (
     content?: string,
     type?: 'note' | 'reminder',
     reminderAt?: number,
-    repeatDays?: string,
-    isPinned?: number,
-    position?: number
+    isPinned?: number
 ): Promise<Note> => {
-    return await notesRepository.updateNote(id, title, content, type, reminderAt, repeatDays, isPinned, position);
+    return await notesRepository.updateNote(id, title, content, type, reminderAt, isPinned);
 };

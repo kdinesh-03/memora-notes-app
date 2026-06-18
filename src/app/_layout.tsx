@@ -18,7 +18,9 @@ export default function RootLayout() {
                 <KeyboardProvider>
                     <ToastProvider>
                         <StatusBar style="light" />
-                        <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }} />
+                        <Stack
+                            screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
+                        />
                     </ToastProvider>
                 </KeyboardProvider>
             </SafeAreaProvider>
