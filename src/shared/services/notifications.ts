@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { Note } from '../../features/domain/entities/Note';
 
@@ -17,6 +18,17 @@ export const requestNotificationPermissions = async () => {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
     }
+
+    if (finalStatus === 'granted' && Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('default', {
+            name: 'default',
+            importance: Notifications.AndroidImportance.MAX,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#007AFF',
+            sound: 'notification.wav',
+        });
+    }
+
     return finalStatus === 'granted';
 };
 
@@ -42,14 +54,15 @@ export const scheduleNoteNotifications = async (note: Note) => {
                     title: 'Reminder',
                     body: note.title || 'You have a reminder',
                     data: { noteId: note.id },
+                    sound: 'notification.wav',
                 },
                 trigger: {
                     date: date,
                     type: Notifications.SchedulableTriggerInputTypes.DATE,
+                    channelId: 'default',
                 } as any,
             });
 
-            // ✅ FIX HERE ALSO
             const fifteenBefore = new Date(date.getTime() - 15 * 60 * 1000);
 
             if (fifteenBefore.getTime() > Date.now()) {
@@ -59,10 +72,12 @@ export const scheduleNoteNotifications = async (note: Note) => {
                         title: 'Upcoming Reminder',
                         body: `In 15 mins: ${note.title}`,
                         data: { noteId: note.id },
+                        sound: 'notification.wav',
                     },
                     trigger: {
                         date: fifteenBefore,
                         type: Notifications.SchedulableTriggerInputTypes.DATE,
+                        channelId: 'default',
                     } as any,
                 });
             }
@@ -70,7 +85,7 @@ export const scheduleNoteNotifications = async (note: Note) => {
 
         return { reminderTimeId, reminderTimeId15 };
     } catch (error) {
-        console.error('❌ Schedule error:', error);
+        console.log('❌ Schedule error:', error);
         return null;
     }
 };

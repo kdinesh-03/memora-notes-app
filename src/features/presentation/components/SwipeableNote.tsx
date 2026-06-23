@@ -9,9 +9,10 @@ interface SwipeableNoteProps {
     note: Note;
     onDelete: (id: string, type: 'note' | 'reminder') => void;
     children: React.ReactNode;
+    enabled?: boolean;
 }
 
-export const SwipeableNote = ({ note, onDelete, children }: SwipeableNoteProps) => {
+export const SwipeableNote = ({ note, onDelete, children, enabled = true }: SwipeableNoteProps) => {
     const swipeableRef = useRef<SwipeableMethods | null>(null);
 
     const renderRightActions = () => {
@@ -36,6 +37,7 @@ export const SwipeableNote = ({ note, onDelete, children }: SwipeableNoteProps) 
             leftThreshold={30}
             rightThreshold={40}
             renderRightActions={renderRightActions}
+            enabled={enabled}
         >
             {children}
         </Swipeable>

@@ -1,6 +1,6 @@
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Calendar, ChevronLeft } from 'lucide-react-native';
+import { AudioWaveform, Calendar, ChevronLeft, Mic, MicOff } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -15,6 +15,15 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts } from '../../../shared/utils/fonts';
 import { useNoteEditor } from '../hooks/useNoteEditor';
+import { useSpeechToText } from '../hooks/useSpeechToText';
+import Animated, {
+    useSharedValue,
+    useAnimatedStyle,
+    withRepeat,
+    withTiming,
+    Easing,
+} from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
 
 export const NoteEditorScreen = () => {
     const { id } = useLocalSearchParams<{ id?: string }>();
@@ -31,9 +40,21 @@ export const NoteEditorScreen = () => {
         saving,
         handleSave,
     } = useNoteEditor(id);
+
     const { bottom, top } = useSafeAreaInsets();
+    const { isRecording, transcript, start, stop } = useSpeechToText();
+
+    const [focusedField, setFocusedField] = useState<'title' | 'content'>('title')
+
     const [showPicker, setShowPicker] = useState(false);
     const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+
+    useEffect(() => {
+        if (transcript) {
+            if (focusedField === 'title') handleTitleChange(transcript);
+            else handleContentChange(transcript)
+        }
+    }, [transcript])
 
     useEffect(() => {
         if (noteType === 'note') {
@@ -52,6 +73,36 @@ export const NoteEditorScreen = () => {
             hour12: true,
         });
         return `${dateStr}, ${timeStr.toUpperCase()}`;
+    };
+
+    const rotation = useSharedValue(0);
+
+    useEffect(() => {
+        if (isRecording) {
+            rotation.value = withRepeat(
+                withTiming(360, {
+                    duration: 2000,
+                    easing: Easing.linear,
+                }),
+                -1
+            );
+        } else {
+            rotation.value = 0;
+        }
+    }, [isRecording]);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ rotate: `${rotation.value}deg` }],
+    }));
+
+    const handlePress = async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+        if (isRecording) {
+            stop();
+        } else {
+            await start();
+        }
     };
 
     if (loading) {
@@ -110,27 +161,65 @@ export const NoteEditorScreen = () => {
                     </View>
                 </View>
 
-                <TextInput
-                    placeholder="Title"
-                    placeholderTextColor={'#666'}
-                    style={[styles.titleInput, darkStyles.text]}
-                    value={title}
-                    onChangeText={handleTitleChange}
-                    multiline
-                    autoFocus
-                    autoCorrect
-                />
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        placeholder="Title"
+                        placeholderTextColor={'#666'}
+                        style={[styles.titleInput, darkStyles.text]}
+                        value={title}
+                        onChangeText={handleTitleChange}
+                        multiline
+                        autoFocus
+                        autoCorrect
+                        onFocus={() => setFocusedField('title')}
+                    />
+                    {focusedField === 'title' && (
+                        <Pressable
+                            onPress={handlePress}
+                            style={styles.recordingBtn}
+                            hitSlop={10}
+                        >
+                            {isRecording && (
+                                <Animated.View style={[styles.ring, animatedStyle]} />
+                            )}
+                            {isRecording ? (
+                                <AudioWaveform color="#007AFF" size={20} />
+                            ) : (
+                                <Mic color="#007AFF" size={20} />
+                            )}
+                        </Pressable>
+                    )}
+                </View>
 
-                <TextInput
-                    placeholder="Start writing..."
-                    placeholderTextColor={'#666'}
-                    style={[styles.contentInput, darkStyles.text]}
-                    value={content}
-                    onChangeText={handleContentChange}
-                    multiline
-                    textAlignVertical="top"
-                    autoCorrect
-                />
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        placeholder="Start writing..."
+                        placeholderTextColor={'#666'}
+                        style={[styles.contentInput, darkStyles.text]}
+                        value={content}
+                        onChangeText={handleContentChange}
+                        multiline
+                        textAlignVertical="top"
+                        autoCorrect
+                        onFocus={() => setFocusedField('content')}
+                    />
+                    {focusedField === 'content' && (
+                        <Pressable
+                            onPress={handlePress}
+                            style={styles.recordingBtn}
+                            hitSlop={10}
+                        >
+                            {isRecording && (
+                                <Animated.View style={[styles.ring, animatedStyle]} />
+                            )}
+                            {isRecording ? (
+                                <AudioWaveform color="#007AFF" size={20} />
+                            ) : (
+                                <Mic color="#007AFF" size={20} />
+                            )}
+                        </Pressable>
+                    )}
+                </View>
 
                 {noteType === 'reminder' && (
                     <View style={styles.reminderSettings}>
@@ -158,46 +247,42 @@ export const NoteEditorScreen = () => {
                                     is24Hour={false}
                                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                                     minimumDate={new Date()}
-                                    onChange={(event: DateTimePickerEvent, date?: Date) => {
-                                        if (event.type === 'dismissed') {
-                                            setShowPicker(false);
-                                            setPickerMode('date');
-                                            return;
-                                        }
-
-                                        if (date) {
-                                            const newDate = new Date(reminderAt || Date.now());
-                                            if (Platform.OS === 'android') {
-                                                if (pickerMode === 'date') {
-                                                    newDate.setFullYear(
-                                                        date.getFullYear(),
-                                                        date.getMonth(),
-                                                        date.getDate()
-                                                    );
-                                                    setReminderAt(newDate.getTime());
-                                                    setShowPicker(false);
-                                                    setTimeout(() => {
-                                                        setPickerMode('time');
-                                                        setShowPicker(true);
-                                                    }, 100);
-                                                } else {
-                                                    newDate.setHours(
-                                                        date.getHours(),
-                                                        date.getMinutes(),
-                                                        0,
-                                                        0
-                                                    );
-                                                    setReminderAt(newDate.getTime());
-                                                    setShowPicker(false);
-                                                    setPickerMode('date');
-                                                }
+                                    onValueChange={(event: DateTimePickerChangeEvent, date: Date) => {
+                                        const newDate = new Date(reminderAt || Date.now());
+                                        if (Platform.OS === 'android') {
+                                            if (pickerMode === 'date') {
+                                                newDate.setFullYear(
+                                                    date.getFullYear(),
+                                                    date.getMonth(),
+                                                    date.getDate()
+                                                );
+                                                setReminderAt(newDate.getTime());
+                                                setShowPicker(false);
+                                                setTimeout(() => {
+                                                    setPickerMode('time');
+                                                    setShowPicker(true);
+                                                }, 100);
                                             } else {
-                                                const finalDate = new Date(date);
-                                                finalDate.setSeconds(0);
-                                                finalDate.setMilliseconds(0);
-                                                setReminderAt(finalDate.getTime());
+                                                newDate.setHours(
+                                                    date.getHours(),
+                                                    date.getMinutes(),
+                                                    0,
+                                                    0
+                                                );
+                                                setReminderAt(newDate.getTime());
+                                                setShowPicker(false);
+                                                setPickerMode('date');
                                             }
+                                        } else {
+                                            const finalDate = new Date(date);
+                                            finalDate.setSeconds(0);
+                                            finalDate.setMilliseconds(0);
+                                            setReminderAt(finalDate.getTime());
                                         }
+                                    }}
+                                    onDismiss={() => {
+                                        setShowPicker(false);
+                                        setPickerMode('date');
                                     }}
                                     textColor="#FFF"
                                     themeVariant="dark"
@@ -220,7 +305,7 @@ export const NoteEditorScreen = () => {
 };
 
 const styles = StyleSheet.create({
-    container: { flexGrow: 1, paddingHorizontal: 20 },
+    container: { flexGrow: 1, paddingHorizontal: 16 },
     centered: { justifyContent: 'center', alignItems: 'center' },
     header: {
         flexDirection: 'row',
@@ -249,29 +334,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 12,
     },
-    reminderToggle: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        backgroundColor: '#1c1c1e',
-        paddingLeft: 12,
-        paddingRight: 4,
-        paddingVertical: 4,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: '#333',
-        overflow: 'hidden',
-    },
-    reminderText: {
-        color: '#AAA',
-        fontSize: 14,
-        ...fonts.fontMedium,
-    },
     typeButton: {
         backgroundColor: '#1c1c1e',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
         borderWidth: 1,
         borderColor: '#333',
     },
@@ -280,7 +347,7 @@ const styles = StyleSheet.create({
     },
     typeText: {
         color: '#AAA',
-        fontSize: 14,
+        fontSize: 16,
         ...fonts.fontMedium,
     },
     typeTextActive: {
@@ -298,6 +365,29 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
     },
+    inputContainer: { position: "relative", marginBottom: 20, display: "flex", justifyContent: "center" },
+    recordingBtn: {
+        backgroundColor: '#1c1c1e',
+        width: 40,
+        height: 40,
+        borderRadius: 50,
+        position: "absolute",
+        right: 0,
+        top: 10,
+        justifyContent: "center",
+        alignItems: "center"
+    },
+    ring: {
+        position: "absolute",
+        width: 40,
+        height: 40,
+        borderRadius: 100,
+        borderWidth: 2,
+        borderTopColor: "#007AFF",
+        borderRightColor: "#007AFF",
+        borderBottomColor: "transparent",
+        borderLeftColor: "transparent",
+    },
     reminderLabel: {
         color: '#FFF',
         fontSize: 16,
@@ -306,7 +396,6 @@ const styles = StyleSheet.create({
     titleInput: {
         fontSize: 32,
         ...fonts.fontBold,
-        marginBottom: 20,
         maxHeight: 120,
     },
     contentInput: {

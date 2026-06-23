@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { scheduleNoteNotifications } from '../../../shared/services/notifications';
+import { scheduleNoteNotifications, requestNotificationPermissions } from '../../../shared/services/notifications';
 import { useStore } from '../../../shared/store/useStore';
 import { createNoteUseCase } from '../../domain/usecases/createNote.usecase';
 import { getNoteByIdUseCase } from '../../domain/usecases/getNoteById.usecase';
@@ -37,10 +37,18 @@ export const useNoteEditor = (id?: string) => {
 
         setSaving(true);
         try {
-            if (noteType === 'reminder' && !reminderAt) {
-                Toast.show({ message: 'Please select a date and time for the reminder' });
-                setSaving(false);
-                return;
+            if (noteType === 'reminder') {
+                if (!reminderAt) {
+                    Toast.show({ message: 'Please select a date and time for the reminder' });
+                    setSaving(false);
+                    return;
+                }
+                const hasPermission = await requestNotificationPermissions();
+                if (!hasPermission) {
+                    Toast.show({ message: 'Notification permission is required to set reminders' });
+                    setSaving(false);
+                    return;
+                }
             }
 
             if (noteIdRef.current) {
@@ -67,7 +75,7 @@ export const useNoteEditor = (id?: string) => {
             }
             router.back();
         } catch (error) {
-            console.error('Failed to save note:', error);
+            console.log('Failed to save note:', error);
             Toast.show({ message: `Failed to save ${noteType === 'note' ? 'Note' : 'Reminder'}` });
         } finally {
             setSaving(false);

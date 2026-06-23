@@ -2,16 +2,21 @@ import * as SQLite from 'expo-sqlite';
 
 export const DATABASE_NAME = 'notes.db';
 
+let dbInstance: SQLite.SQLiteDatabase | null = null;
+
 export const getDb = async () => {
-    return await SQLite.openDatabaseAsync(DATABASE_NAME);
+  if (!dbInstance) {
+    dbInstance = await SQLite.openDatabaseAsync(DATABASE_NAME);
+  }
+  return dbInstance;
 };
 
 export const initDb = async () => {
-    const db = await getDb();
+  const db = await getDb();
 
-    await db.execAsync('PRAGMA foreign_keys = ON;');
+  await db.execAsync('PRAGMA foreign_keys = ON;');
 
-    await db.execAsync(`
+  await db.execAsync(`
     CREATE TABLE IF NOT EXISTS notes (
       id TEXT PRIMARY KEY NOT NULL,
       title TEXT NOT NULL,
@@ -24,67 +29,79 @@ export const initDb = async () => {
     );
   `);
 
-    // Simple migration for new columns
-    try {
-        const tableInfo = await db.getAllAsync<{ name: string }>('PRAGMA table_info(notes);');
-        const cols = tableInfo.map((c) => c.name);
+  try {
+    const tableInfo = await db.getAllAsync<{ name: string }>('PRAGMA table_info(notes);');
+    const cols = tableInfo.map((c) => c.name);
 
-        if (!cols.includes('type')) {
-            await db.execAsync("ALTER TABLE notes ADD COLUMN type TEXT DEFAULT 'note';");
-        }
-        if (!cols.includes('reminder_at')) {
-            await db.execAsync('ALTER TABLE notes ADD COLUMN reminder_at INTEGER;');
-        }
-        if (!cols.includes('is_pinned')) {
-            await db.execAsync('ALTER TABLE notes ADD COLUMN is_pinned INTEGER DEFAULT 0;');
-        }
-    } catch (err) {
-        console.error('Migration failed:', err);
+    if (!cols.includes('type')) {
+      await db.execAsync("ALTER TABLE notes ADD COLUMN type TEXT DEFAULT 'note';");
     }
+    if (!cols.includes('reminder_at')) {
+      await db.execAsync('ALTER TABLE notes ADD COLUMN reminder_at INTEGER;');
+    }
+    if (!cols.includes('is_pinned')) {
+      await db.execAsync('ALTER TABLE notes ADD COLUMN is_pinned INTEGER DEFAULT 0;');
+    }
+  } catch (err) {
+    console.log('Migration failed:', err);
+  }
 
-    await db.execAsync(`
+  await db.execAsync(`
     CREATE INDEX IF NOT EXISTS idx_notes_updated_at ON notes(updated_at DESC);
   `);
 
-    try {
-        // Force rebuild of search table as requested
-        await db.execAsync('DROP TABLE IF EXISTS notes_search;');
+  try {
+    const searchTableExists = await db.getFirstAsync<{ name: string }>(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='notes_search';"
+    );
 
-        // Create the search table with external content
-        await db.execAsync(`
-      CREATE VIRTUAL TABLE IF NOT EXISTS notes_search USING fts5(
-        id,
-        title,
-        content,
-        content='notes',
-        content_rowid='rowid'
-      );
-    `);
+    if (!searchTableExists) {
+      console.log('notes_search table does not exist. Creating it...');
+      await db.execAsync(`
+        CREATE VIRTUAL TABLE notes_search USING fts5(
+          id,
+          title,
+          content,
+          content='notes',
+          content_rowid='rowid'
+        );
+      `);
 
-        // Sync triggers
-        await db.execAsync(`
-      DROP TRIGGER IF EXISTS notes_ai;
-      DROP TRIGGER IF EXISTS notes_ad;
-      DROP TRIGGER IF EXISTS notes_au;
-      
-      CREATE TRIGGER notes_ai AFTER INSERT ON notes BEGIN
-        INSERT INTO notes_search(rowid, id, title, content) VALUES (new.rowid, new.id, new.title, new.content);
-      END;
-      
-      CREATE TRIGGER notes_ad AFTER DELETE ON notes BEGIN
-        INSERT INTO notes_search(notes_search, rowid, id, title, content) VALUES('delete', old.rowid, old.id, old.title, old.content);
-      END;
-      
-      CREATE TRIGGER notes_au AFTER UPDATE ON notes BEGIN
-        INSERT INTO notes_search(notes_search, rowid, id, title, content) VALUES('delete', old.rowid, old.id, old.title, old.content);
-        INSERT INTO notes_search(rowid, id, title, content) VALUES (new.rowid, new.id, new.title, new.content);
-      END;
-    `);
+      await db.execAsync(`
+        CREATE TRIGGER notes_ai AFTER INSERT ON notes BEGIN
+          INSERT INTO notes_search(rowid, id, title, content) VALUES (new.rowid, new.id, new.title, new.content);
+        END;
+        
+        CREATE TRIGGER notes_ad AFTER DELETE ON notes BEGIN
+          INSERT INTO notes_search(notes_search, rowid, id, title, content) VALUES('delete', old.rowid, old.id, old.title, old.content);
+        END;
+        
+        CREATE TRIGGER notes_au AFTER UPDATE ON notes BEGIN
+          INSERT INTO notes_search(notes_search, rowid, id, title, content) VALUES('delete', old.rowid, old.id, old.title, old.content);
+          INSERT INTO notes_search(rowid, id, title, content) VALUES (new.rowid, new.id, new.title, new.content);
+        END;
+      `);
 
-        // Rebuild FTS5 index to ensure it is in sync with existing data
-        await db.execAsync("INSERT INTO notes_search(notes_search) VALUES('rebuild');");
-        console.log('Database and FTS5 initialized successfully');
-    } catch (error) {
-        console.error('Error initializing SQLite:', error);
+      await db.execAsync("INSERT INTO notes_search(notes_search) VALUES('rebuild');");
+      console.log('FTS5 search table and triggers created and rebuilt successfully.');
+    } else {
+      await db.execAsync(`
+        CREATE TRIGGER IF NOT EXISTS notes_ai AFTER INSERT ON notes BEGIN
+          INSERT INTO notes_search(rowid, id, title, content) VALUES (new.rowid, new.id, new.title, new.content);
+        END;
+        
+        CREATE TRIGGER IF NOT EXISTS notes_ad AFTER DELETE ON notes BEGIN
+          INSERT INTO notes_search(notes_search, rowid, id, title, content) VALUES('delete', old.rowid, old.id, old.title, old.content);
+        END;
+        
+        CREATE TRIGGER IF NOT EXISTS notes_au AFTER UPDATE ON notes BEGIN
+          INSERT INTO notes_search(notes_search, rowid, id, title, content) VALUES('delete', old.rowid, old.id, old.title, old.content);
+          INSERT INTO notes_search(rowid, id, title, content) VALUES (new.rowid, new.id, new.title, new.content);
+        END;
+      `);
     }
+    console.log('Database and FTS5 initialized successfully');
+  } catch (error) {
+    console.log('Error initializing SQLite:', error);
+  }
 };

@@ -137,3 +137,56 @@ export const searchNotes = async (
     const results = await db.getAllAsync<any>(sql);
     return results;
 };
+
+export const getNotesCounts = async (
+    searchQuery?: string
+): Promise<{ all: number; pinned: number; notes: number; reminders: number }> => {
+    const db = await getDb();
+
+    if (searchQuery && searchQuery.trim().length > 0) {
+        const searchTerms = searchQuery
+            .trim()
+            .split(/\s+/)
+            .filter((t) => t.length > 0)
+            .map((t) => `${t}*`)
+            .join(' ');
+
+        if (!searchTerms) {
+            return { all: 0, pinned: 0, notes: 0, reminders: 0 };
+        }
+
+        const sql = `
+      SELECT 
+        COUNT(*) as "all",
+        COUNT(CASE WHEN n.is_pinned = 1 THEN 1 END) as "pinned",
+        COUNT(CASE WHEN n.type = 'note' THEN 1 END) as "notes",
+        COUNT(CASE WHEN n.type = 'reminder' THEN 1 END) as "reminders"
+      FROM notes n
+      JOIN notes_search ON n.rowid = notes_search.rowid
+      WHERE notes_search MATCH ?
+    `;
+        const result = await db.getFirstAsync<any>(sql, [searchTerms]);
+        return {
+            all: result?.all ?? 0,
+            pinned: result?.pinned ?? 0,
+            notes: result?.notes ?? 0,
+            reminders: result?.reminders ?? 0,
+        };
+    } else {
+        const sql = `
+      SELECT 
+        COUNT(*) as "all",
+        COUNT(CASE WHEN is_pinned = 1 THEN 1 END) as "pinned",
+        COUNT(CASE WHEN type = 'note' THEN 1 END) as "notes",
+        COUNT(CASE WHEN type = 'reminder' THEN 1 END) as "reminders"
+      FROM notes
+    `;
+        const result = await db.getFirstAsync<any>(sql);
+        return {
+            all: result?.all ?? 0,
+            pinned: result?.pinned ?? 0,
+            notes: result?.notes ?? 0,
+            reminders: result?.reminders ?? 0,
+        };
+    }
+};

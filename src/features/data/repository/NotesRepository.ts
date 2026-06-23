@@ -19,4 +19,5 @@ export interface INotesRepository {
     ): Promise<Note>;
     deleteNote(id: string): Promise<void>;
     searchNotes(query: string, limit: number, offset: number): Promise<Note[]>;
+    getNotesCounts(searchQuery?: string): Promise<{ all: number; pinned: number; notes: number; reminders: number }>;
 }

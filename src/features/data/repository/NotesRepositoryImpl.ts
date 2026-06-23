@@ -6,6 +6,7 @@ import {
     getNotes,
     searchNotes,
     updateNote,
+    getNotesCounts,
 } from '../datasource/notes';
 
 export const notesRepository = {
@@ -44,5 +45,9 @@ export const notesRepository = {
 
     async searchNotes(query: string, limit: number, offset: number): Promise<Note[]> {
         return await searchNotes(query, limit, offset);
+    },
+
+    async getNotesCounts(searchQuery?: string): Promise<{ all: number; pinned: number; notes: number; reminders: number }> {
+        return await getNotesCounts(searchQuery);
     },
 };

@@ -6,14 +6,22 @@ interface AppState {
     loading: boolean;
     hasMore: boolean;
     searchQuery: string;
+    tabCounts: {
+        all: number;
+        pinned: number;
+        notes: number;
+        reminders: number;
+    };
     setSearchQuery: (query: string) => void;
     setNotes: (notes: Note[]) => void;
     appendNotes: (newNotes: Note[]) => void;
     addNote: (note: Note) => void;
     updateNote: (note: Note) => void;
     removeNote: (id: string) => void;
+    reorderNotes: (notes: Note[]) => void;
     setLoading: (loading: boolean) => void;
     setHasMore: (hasMore: boolean) => void;
+    setTabCounts: (counts: { all: number; pinned: number; notes: number; reminders: number }) => void;
 }
 
 const sortNotes = (a: Note, b: Note) => {
@@ -30,6 +38,7 @@ export const useStore = create<AppState>((set) => ({
     loading: false,
     hasMore: true,
     searchQuery: '',
+    tabCounts: { all: 0, pinned: 0, notes: 0, reminders: 0 },
     setSearchQuery: (query) => set({ searchQuery: query }),
     setNotes: (notes) => set({ notes: [...notes].sort(sortNotes) }),
     appendNotes: (newNotes) =>
@@ -48,6 +57,8 @@ export const useStore = create<AppState>((set) => ({
         set((state) => ({
             notes: state.notes.filter((n) => n.id !== id),
         })),
+    reorderNotes: (notes) => set({ notes }),
     setLoading: (loading) => set({ loading }),
     setHasMore: (hasMore) => set({ hasMore }),
+    setTabCounts: (counts) => set({ tabCounts: counts }),
 }));

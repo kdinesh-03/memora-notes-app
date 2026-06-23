@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useStore } from '../../../shared/store/useStore';
 import { Note } from '../../domain/entities/Note';
 import { deleteNoteUseCase } from '../../domain/usecases/deleteNote.usecase';
@@ -24,7 +24,6 @@ export const useNotes = () => {
         removeNote,
         updateNote,
     } = useStore();
-    const [refreshing, setRefreshing] = useState(false);
 
     const searchPageRef = useRef(0);
 
@@ -68,28 +67,21 @@ export const useNotes = () => {
                     setNotes(result);
                 }
             } catch (error) {
-                console.error('Failed to fetch notes:', error);
+                console.log('Failed to fetch notes:', error);
             } finally {
                 setLoading(false);
-                setRefreshing(false);
             }
         },
         [
             notes.length,
             searchQuery,
             loading,
-            refreshing,
             appendNotes,
             setNotes,
             setLoading,
             setHasMore,
         ]
     );
-
-    const onRefresh = () => {
-        setRefreshing(true);
-        fetchNotes(false);
-    };
 
     const onLoadMore = () => {
         if (hasMore && !loading) {
@@ -106,7 +98,7 @@ export const useNotes = () => {
                 message: `${noteType === 'note' ? 'Note' : 'Reminder'} deleted successfully`,
             });
         } catch (error) {
-            console.error('Failed to delete note:', error);
+            console.log('Failed to delete note:', error);
             Toast.show({
                 message: `Failed to delete ${noteType === 'note' ? 'Note' : 'Reminder'}`,
             });
@@ -127,7 +119,7 @@ export const useNotes = () => {
             updateNote(updatedNote);
             Toast.show({ message: nextPinned === 1 ? 'Note pinned' : 'Note unpinned' });
         } catch (error) {
-            console.error('Failed to toggle pin:', error);
+            console.log('Failed to toggle pin:', error);
             Toast.show({ message: 'Failed to toggle pin' });
         }
     };
@@ -140,8 +132,6 @@ export const useNotes = () => {
     return {
         notes,
         loading,
-        refreshing,
-        onRefresh,
         onLoadMore,
         handleDelete,
         handleTogglePin,

@@ -1,35 +1,52 @@
 import { router } from 'expo-router';
 import debounce from 'lodash.debounce';
-import { Search, X } from 'lucide-react-native';
-import { useCallback, useState } from 'react';
+import { Plus, X } from 'lucide-react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
+    Dimensions,
     Pressable,
-    ScrollView,
     StyleSheet,
     Text,
     TextInput,
     View,
-    RefreshControl,
 } from 'react-native';
+import { TabView, TabBar, SceneRendererProps, NavigationState } from 'react-native-tab-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../../../shared/store/useStore';
 import { fonts } from '../../../shared/utils/fonts';
 import { useNotes } from '../hooks/useNotes';
-import { NoteItem } from '../components/NoteItem';
-import { SwipeableNote } from '../components/SwipeableNote';
+import { NotesTab } from '../components/NotesTab';
+import { Note } from '../../domain/entities/Note';
+import { getNotesCountsUseCase } from '../../domain/usecases/getNotesCounts.usecase';
+
+const TAB_BAR_HEIGHT = 44;
+const WINDOW_WIDTH = Dimensions.get('window').width;
+
+type TabRoute = {
+    key: string;
+    title: string;
+};
+
+const ROUTES: TabRoute[] = [
+    { key: 'all', title: 'All' },
+    { key: 'pinned', title: 'Pinned' },
+    { key: 'notes', title: 'Notes' },
+    { key: 'reminders', title: 'Reminders' },
+];
 
 export const NotesListScreen = () => {
-    const { notes, refreshing, onRefresh, loading, handleDelete, handleTogglePin } = useNotes();
-    const { searchQuery, setSearchQuery } = useStore();
+    const { notes, loading, handleDelete, handleTogglePin } = useNotes();
+    const { searchQuery, setSearchQuery, tabCounts, setTabCounts } = useStore();
     const [localSearch, setLocalSearch] = useState(searchQuery);
-    const { bottom, top } = useSafeAreaInsets();
+    const { top, bottom } = useSafeAreaInsets();
+    const [tabIndex, setTabIndex] = useState(0);
 
-    const debouncedSearch = useCallback(
-        debounce((query: string) => {
-            setSearchQuery(query);
-        }, 500),
-        []
+    const debouncedSearch = useMemo(
+        () =>
+            debounce((query: string) => {
+                setSearchQuery(query);
+            }, 500),
+        [setSearchQuery]
     );
 
     const handleSearchChange = (text: string) => {
@@ -42,224 +59,309 @@ export const NotesListScreen = () => {
         setSearchQuery('');
     };
 
-    const pinnedNotes = notes.filter((n) => n.is_pinned === 1);
-    const unpinnedNotes = notes.filter((n) => n.is_pinned !== 1);
-
-    const upcomingReminders = unpinnedNotes.filter(
-        (n) => n.type === 'reminder' && n.reminder_at && n.reminder_at > Date.now()
-    );
-    const recentNotes = unpinnedNotes.filter(
-        (n) => !(n.type === 'reminder' && n.reminder_at && n.reminder_at > Date.now())
-    );
-
-    const handlePress = (id: string) => {
-        router.push({ pathname: '/editor', params: { id } });
-    };
-
     const isSearching = searchQuery.trim().length > 0;
 
-    return (
-        <View style={[styles.container, darkStyles.container, { paddingTop: top }]}>
-            <View style={styles.header}>
-                <Text style={[styles.headerTitle, darkStyles.text]}>Memora</Text>
-                <Pressable style={styles.fab} onPress={() => router.push('/editor')}>
-                    <Text style={styles.addText}>Add</Text>
-                </Pressable>
-            </View>
+    const filteredNotes = useMemo((): Record<string, Note[]> => {
+        const source = notes;
+        return {
+            all: source,
+            pinned: source.filter((n) => n.is_pinned === 1),
+            notes: source.filter((n) => n.type === 'note'),
+            reminders: source.filter((n) => n.type === 'reminder'),
+        };
+    }, [notes]);
 
-            <View style={[styles.searchBar, darkStyles.searchBar]}>
-                <Search size={20} color={'#aaa'} />
-                <TextInput
-                    placeholder="Search notes..."
-                    placeholderTextColor={'#aaa'}
-                    style={[styles.searchInput, darkStyles.text]}
-                    value={localSearch}
-                    onChangeText={handleSearchChange}
-                    returnKeyType="search"
+    useEffect(() => {
+        const query = searchQuery.trim();
+        getNotesCountsUseCase(query)
+            .then(setTabCounts)
+            .catch((err) => console.log('Failed to sync tab counts:', err));
+    }, [notes, searchQuery, setTabCounts]);
+
+    const renderScene = useCallback(
+        ({ route }: SceneRendererProps & { route: TabRoute }) => {
+            const tabNotes = isSearching
+                ? notes.filter((n) => {
+                    if (route.key === 'pinned') return n.is_pinned === 1;
+                    if (route.key === 'notes') return n.type === 'note';
+                    if (route.key === 'reminders') return n.type === 'reminder';
+                    return true;
+                })
+                : filteredNotes[route.key] || [];
+
+            return (
+                <NotesTab
+                    notes={tabNotes}
+                    loading={loading}
+                    onDelete={handleDelete}
+                    onTogglePin={handleTogglePin}
                 />
-                {localSearch.length > 0 && (
-                    <Pressable onPress={handleClearSearch} style={styles.clearButton}>
-                        <X size={18} color={'#aaa'} />
-                    </Pressable>
-                )}
+            );
+        },
+        [
+            filteredNotes,
+            loading,
+            handleDelete,
+            handleTogglePin,
+            isSearching,
+            notes,
+        ]
+    );
+
+    const renderTabLabel = useCallback(
+        (key: string, title: string, focused: boolean) => {
+            const count = tabCounts[key as keyof typeof tabCounts] ?? 0;
+            return (
+                <View style={styles.tabLabelContainer}>
+                    <Text
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                        style={[
+                            styles.tabLabelText,
+                            focused && styles.tabLabelTextActive,
+                        ]}
+                    >
+                        {title}
+                    </Text>
+                    <View
+                        style={[
+                            styles.tabCountBadge,
+                            focused && styles.tabCountBadgeActive,
+                        ]}
+                    >
+                        <Text
+                            style={[
+                                styles.tabCountText,
+                                focused && styles.tabCountTextActive,
+                            ]}
+                        >
+                            {count}
+                        </Text>
+                    </View>
+                </View>
+            );
+        },
+        [tabCounts]
+    );
+
+    const renderTabBar = useCallback(
+        (
+            props: SceneRendererProps & {
+                navigationState: NavigationState<TabRoute>;
+            }
+        ) => (
+            <TabBar
+                {...props}
+                scrollEnabled={true}
+                style={styles.tabBar}
+                indicatorStyle={styles.tabIndicator}
+                tabStyle={styles.tab}
+                options={{
+                    all: {
+                        label: ({ focused }) => renderTabLabel('all', 'All', focused),
+                    },
+                    pinned: {
+                        label: ({ focused }) => renderTabLabel('pinned', 'Pinned', focused),
+                    },
+                    notes: {
+                        label: ({ focused }) => renderTabLabel('notes', 'Notes', focused),
+                    },
+                    reminders: {
+                        label: ({ focused }) => renderTabLabel('reminders', 'Reminders', focused),
+                    },
+                }}
+                pressColor="transparent"
+                pressOpacity={0.7}
+            />
+        ),
+        [renderTabLabel]
+    );
+
+    return (
+        <View style={[styles.container, { paddingTop: top }]}>
+
+            <View style={{ gap: 16 }}>
+                <View style={styles.headerContainer}>
+                    <Text style={styles.headerTitle}>
+                        Memora
+                    </Text>
+                </View>
+                <View style={styles.searchInputContainer}>
+                    <TextInput
+                        placeholder="Search notes..."
+                        placeholderTextColor="#666"
+                        style={styles.searchInput}
+                        value={localSearch}
+                        onChangeText={handleSearchChange}
+                        returnKeyType="search"
+                        autoCorrect
+                        spellCheck
+                    />
+                    {localSearch.length > 0 && (
+                        <Pressable onPress={handleClearSearch}>
+                            <X size={20} color="#666" />
+                        </Pressable>
+                    )}
+                </View>
             </View>
 
-            <ScrollView
-                contentContainerStyle={[styles.listContent, { paddingBottom: bottom }]}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-                refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={onRefresh}
-                        tintColor="#007AFF"
-                    />
-                }
+            <TabView
+                navigationState={{ index: tabIndex, routes: ROUTES }}
+                renderScene={renderScene}
+                onIndexChange={setTabIndex}
+                renderTabBar={renderTabBar}
+                initialLayout={{ width: WINDOW_WIDTH }}
+                lazy
+            />
+
+            <Pressable
+                style={({ pressed }) => [
+                    styles.fab,
+                    { bottom },
+                    pressed && styles.fabPressed,
+                ]}
+                onPress={() => router.push('/editor')}
             >
-                {loading && notes.length === 0 ? (
-                    <ActivityIndicator size={20} style={{ margin: 20 }} />
-                ) : isSearching ? (
-                    notes.length > 0 ? (
-                        notes.map((note) => (
-                            <SwipeableNote key={note.id} note={note} onDelete={handleDelete}>
-                                <NoteItem
-                                    note={note}
-                                    onPress={handlePress}
-                                    onTogglePin={handleTogglePin}
-                                />
-                            </SwipeableNote>
-                        ))
-                    ) : (
-                        <View style={styles.emptyState}>
-                            <Text style={[darkStyles.text, fonts.fontRegular]}>
-                                No search results found.
-                            </Text>
-                        </View>
-                    )
-                ) : (
-                    <>
-                        {pinnedNotes.length > 0 && (
-                            <View style={styles.sectionContainer}>
-                                <View style={styles.sectionHeader}>
-                                    <Text style={[styles.sectionTitle, darkStyles.sectionTitle]}>
-                                        Pinned
-                                    </Text>
-                                </View>
-                                {pinnedNotes.map((note) => (
-                                    <SwipeableNote
-                                        key={note.id}
-                                        note={note}
-                                        onDelete={handleDelete}
-                                    >
-                                        <NoteItem
-                                            note={note}
-                                            onPress={handlePress}
-                                            onTogglePin={handleTogglePin}
-                                        />
-                                    </SwipeableNote>
-                                ))}
-                            </View>
-                        )}
-
-                        {upcomingReminders.length > 0 && (
-                            <View style={styles.sectionContainer}>
-                                <View style={styles.sectionHeader}>
-                                    <Text style={[styles.sectionTitle, darkStyles.sectionTitle]}>
-                                        Upcoming Reminders
-                                    </Text>
-                                </View>
-                                {upcomingReminders.map((note) => (
-                                    <SwipeableNote
-                                        key={note.id}
-                                        note={note}
-                                        onDelete={handleDelete}
-                                    >
-                                        <NoteItem
-                                            note={note}
-                                            onPress={handlePress}
-                                            onTogglePin={handleTogglePin}
-                                        />
-                                    </SwipeableNote>
-                                ))}
-                            </View>
-                        )}
-
-                        {recentNotes.length > 0 && (
-                            <View style={styles.sectionContainer}>
-                                <View style={styles.sectionHeader}>
-                                    <Text style={[styles.sectionTitle, darkStyles.sectionTitle]}>
-                                        Recent Notes
-                                    </Text>
-                                </View>
-                                {recentNotes.map((note) => (
-                                    <SwipeableNote
-                                        key={note.id}
-                                        note={note}
-                                        onDelete={handleDelete}
-                                    >
-                                        <NoteItem
-                                            note={note}
-                                            onPress={handlePress}
-                                            onTogglePin={handleTogglePin}
-                                        />
-                                    </SwipeableNote>
-                                ))}
-                            </View>
-                        )}
-
-                        {notes.length === 0 && (
-                            <View style={styles.emptyState}>
-                                <Text style={[darkStyles.text, fonts.fontRegular]}>
-                                    No notes found. Create one!
-                                </Text>
-                            </View>
-                        )}
-                    </>
-                )}
-            </ScrollView>
+                <Plus size={28} color="#FFF" strokeWidth={2.5} />
+            </Pressable>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, paddingHorizontal: 16 },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingTop: 10,
-        paddingBottom: 20,
+    container: {
+        flex: 1,
+        backgroundColor: '#000',
+        gap: 12
     },
-    headerTitle: { fontSize: 28, ...fonts.fontBold },
-    searchBar: {
+    headerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 12,
-        marginBottom: 16,
+        backgroundColor: '#000',
+        gap: 16,
     },
-    searchInput: { flex: 1, marginLeft: 8, fontSize: 16, ...fonts.fontRegular },
-    clearButton: { padding: 4 },
-    listContent: { flexGrow: 1 },
-    fab: {
-        backgroundColor: '#1c1c1e',
-        paddingLeft: 16,
-        paddingRight: 18,
-        paddingVertical: 8,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: '#333',
-    },
-    emptyState: {
+    headerTitle: {
         flex: 1,
-        paddingVertical: 40,
+        fontSize: 30,
+        color: '#FFF',
+        ...fonts.fontBold,
+    },
+    searchIconContainer: {
+        width: 40,
+        height: 40,
+        flexDirection: 'row',
+        backgroundColor: '#1C1C1E',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 99
+    },
+    searchInputContainer: {
+        flexDirection: 'row',
+        borderRadius: 10,
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 4,
+        marginHorizontal: 16,
+        backgroundColor: '#1C1C1E',
+        gap: 16
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 16,
+        color: '#FFF',
+        ...fonts.fontMedium,
+        letterSpacing: 0.2
+    },
+    tabBar: {
+        backgroundColor: '#000',
+        elevation: 0,
+        shadowOpacity: 0,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: '#222',
+        height: TAB_BAR_HEIGHT,
+    },
+    tabIndicator: {
+        backgroundColor: '#007AFF',
+        height: 2.5,
+        borderRadius: 2,
+    },
+    tab: {
+        width: WINDOW_WIDTH / 3,
+        paddingHorizontal: 4,
+        minHeight: TAB_BAR_HEIGHT,
+    },
+    cancelButtonContainer: {
+        position: 'absolute',
+        right: 16,
+        top: 10,
+        height: 40,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    sectionContainer: {
-        marginBottom: 12,
+    cancelButton: {
+        paddingHorizontal: 8,
+        height: '100%',
+        justifyContent: 'center',
     },
-    sectionHeader: {
-        backgroundColor: '#000',
-        paddingVertical: 12,
-    },
-    sectionTitle: {
-        fontSize: 14,
-        ...fonts.fontBold,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    addText: {
+    cancelButtonText: {
         color: '#007AFF',
         fontSize: 16,
+        ...fonts.fontMedium,
+    },
+    tabLabelContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        maxWidth: '100%',
+        paddingHorizontal: 4,
+    },
+    tabLabelText: {
+        fontSize: 14,
+        color: '#8E8E93',
+        ...fonts.fontSemiBold,
+        flexShrink: 1,
+    },
+    tabLabelTextActive: {
+        color: '#FFF',
+    },
+    tabCountBadge: {
+        backgroundColor: '#2C2C2E',
+        borderRadius: 8,
+        paddingHorizontal: 6,
+        paddingVertical: 1,
+        minWidth: 20,
+        alignItems: 'center',
+    },
+    tabCountBadgeActive: {
+        backgroundColor: '#007AFF25',
+    },
+    tabCountText: {
+        fontSize: 11,
+        color: '#8E8E93',
         ...fonts.fontSemiBold,
     },
-});
-
-const darkStyles = StyleSheet.create({
-    container: { backgroundColor: '#000' },
-    text: { color: '#FFF' },
-    searchBar: { backgroundColor: '#1C1C1E' },
-    sectionTitle: { color: '#007AFF' },
+    tabCountTextActive: {
+        color: '#007AFF',
+    },
+    fab: {
+        position: 'absolute',
+        right: 16,
+        width: 54,
+        height: 54,
+        borderRadius: 100,
+        backgroundColor: '#007AFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#007AFF',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    fabPressed: {
+        transform: [{ scale: 0.92 }],
+        opacity: 0.9,
+    },
 });
