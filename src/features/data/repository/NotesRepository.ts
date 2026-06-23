@@ -1,3 +1,4 @@
+import type { ImagePickerAsset } from 'expo-image-picker';
 import { Note } from '../../domain/entities/Note';
 
 export interface INotesRepository {
@@ -7,7 +8,9 @@ export interface INotesRepository {
         title: string,
         content: string,
         type: 'note' | 'reminder',
-        reminderAt?: number
+        reminderAt?: number,
+        audioUri?: string,
+        images?: ImagePickerAsset[]
     ): Promise<Note>;
     updateNote(
         id: string,
@@ -15,7 +18,9 @@ export interface INotesRepository {
         content?: string,
         type?: 'note' | 'reminder',
         reminderAt?: number,
-        isPinned?: number
+        isPinned?: number,
+        audioUri?: string,
+        images?: ImagePickerAsset[]
     ): Promise<Note>;
     deleteNote(id: string): Promise<void>;
     searchNotes(query: string, limit: number, offset: number): Promise<Note[]>;

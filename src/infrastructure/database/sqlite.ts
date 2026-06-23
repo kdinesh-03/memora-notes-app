@@ -24,6 +24,8 @@ export const initDb = async () => {
       type TEXT DEFAULT 'note',
       reminder_at INTEGER,
       is_pinned INTEGER DEFAULT 0,
+      audio_uri TEXT,
+      images TEXT,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
@@ -41,6 +43,12 @@ export const initDb = async () => {
     }
     if (!cols.includes('is_pinned')) {
       await db.execAsync('ALTER TABLE notes ADD COLUMN is_pinned INTEGER DEFAULT 0;');
+    }
+    if (!cols.includes('audio_uri')) {
+      await db.execAsync('ALTER TABLE notes ADD COLUMN audio_uri TEXT;');
+    }
+    if (!cols.includes('images')) {
+      await db.execAsync('ALTER TABLE notes ADD COLUMN images TEXT;');
     }
   } catch (err) {
     console.log('Migration failed:', err);

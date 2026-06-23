@@ -5,7 +5,7 @@ import { NoteEditorScreen } from '../features/presentation/screens/NoteEditorScr
 export default function Editor() {
     return (
         <KeyboardAvoidingView
-            style={{ flex: 1 }}
+            style={{ flex: 1, backgroundColor: '#000' }}
             behavior={Platform.OS === 'ios' ? 'height' : 'padding'}
         >
             <NoteEditorScreen />

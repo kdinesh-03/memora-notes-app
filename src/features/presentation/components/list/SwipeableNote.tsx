@@ -2,8 +2,8 @@ import { useRef } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import Swipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Trash2 } from 'lucide-react-native';
-import { fonts } from '../../../shared/utils/fonts';
-import { Note } from '../../domain/entities/Note';
+import { fonts } from '../../../../shared/utils/fonts';
+import { Note } from '../../../domain/entities/Note';
 
 interface SwipeableNoteProps {
     note: Note;

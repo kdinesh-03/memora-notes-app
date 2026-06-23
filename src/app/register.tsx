@@ -1,14 +1,14 @@
 import { Platform } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { NotesListScreen } from '../features/presentation/screens/NotesListScreen';
+import Register from '@/features/presentation/screens/Register';
 
-export default function Index() {
+export default function RegisterPage() {
     return (
         <KeyboardAvoidingView
             style={{ flex: 1, backgroundColor: '#000' }}
             behavior={Platform.OS === 'ios' ? 'height' : 'padding'}
         >
-            <NotesListScreen />
+            <Register />
         </KeyboardAvoidingView>
     );
 }

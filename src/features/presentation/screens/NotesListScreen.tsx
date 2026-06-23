@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
 import debounce from 'lodash.debounce';
-import { Plus, X } from 'lucide-react-native';
+import { Plus, Search, X } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+    Button,
     Dimensions,
     Pressable,
     StyleSheet,
@@ -10,12 +11,13 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { TabView, TabBar, SceneRendererProps, NavigationState } from 'react-native-tab-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../../../shared/store/useStore';
 import { fonts } from '../../../shared/utils/fonts';
 import { useNotes } from '../hooks/useNotes';
-import { NotesTab } from '../components/NotesTab';
+import { NotesTab } from '../components/list/NotesTab';
 import { Note } from '../../domain/entities/Note';
 import { getNotesCountsUseCase } from '../../domain/usecases/getNotesCounts.usecase';
 
@@ -177,16 +179,24 @@ export const NotesListScreen = () => {
         [renderTabLabel]
     );
 
+    const handlePress = useCallback(async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        router.push('/editor');
+    }, []);
+
     return (
         <View style={[styles.container, { paddingTop: top }]}>
-
             <View style={{ gap: 16 }}>
                 <View style={styles.headerContainer}>
                     <Text style={styles.headerTitle}>
                         Memora
                     </Text>
+                    <Pressable hitSlop={10} onPress={() => router.push('/register')}>
+                        <Text style={styles.registerText}>SignUp/SignIn</Text>
+                    </Pressable>
                 </View>
                 <View style={styles.searchInputContainer}>
+                    <Search size={20} color="#666" />
                     <TextInput
                         placeholder="Search notes..."
                         placeholderTextColor="#666"
@@ -198,7 +208,7 @@ export const NotesListScreen = () => {
                         spellCheck
                     />
                     {localSearch.length > 0 && (
-                        <Pressable onPress={handleClearSearch}>
+                        <Pressable onPress={handleClearSearch} hitSlop={10}>
                             <X size={20} color="#666" />
                         </Pressable>
                     )}
@@ -220,7 +230,7 @@ export const NotesListScreen = () => {
                     { bottom },
                     pressed && styles.fabPressed,
                 ]}
-                onPress={() => router.push('/editor')}
+                onPress={handlePress}
             >
                 <Plus size={28} color="#FFF" strokeWidth={2.5} />
             </Pressable>
@@ -247,6 +257,11 @@ const styles = StyleSheet.create({
         color: '#FFF',
         ...fonts.fontBold,
     },
+    registerText: {
+        fontSize: 16,
+        ...fonts.fontMedium,
+        color: '#007AFF'
+    },
     searchIconContainer: {
         width: 40,
         height: 40,
@@ -264,7 +279,7 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
         marginHorizontal: 16,
         backgroundColor: '#1C1C1E',
-        gap: 16
+        gap: 8
     },
     searchInput: {
         flex: 1,

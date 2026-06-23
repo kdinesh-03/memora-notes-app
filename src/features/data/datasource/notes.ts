@@ -1,6 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import { getDb } from '../../../infrastructure/database/sqlite';
 import { Note } from '../../domain/entities/Note';
+import type { ImagePickerAsset } from 'expo-image-picker';
 
 export const getNotes = async (limit: number, cursor?: number): Promise<Note[]> => {
     const db = await getDb();
@@ -16,33 +17,42 @@ export const getNotes = async (limit: number, cursor?: number): Promise<Note[]> 
     params.push(limit);
 
     const result = await db.getAllAsync<any>(query, ...params);
-    return result;
+    return result.map(row => ({
+        ...row,
+        images: row.images ? JSON.parse(row.images) : undefined
+    }));
 };
 
 export const getNoteById = async (id: string): Promise<Note | null> => {
     const db = await getDb();
     const row = await db.getFirstAsync<any>('SELECT * FROM notes WHERE id = ?', [id]);
     if (!row) return null;
-    return row;
+    return {
+        ...row,
+        images: row.images ? JSON.parse(row.images) : undefined
+    };
 };
 
 export const createNote = async (
     title: string,
     content: string,
     type: 'note' | 'reminder' = 'note',
-    reminderAt?: number
+    reminderAt?: number,
+    audioUri?: string,
+    images?: ImagePickerAsset[]
 ): Promise<Note> => {
     const db = await getDb();
     const id = Crypto.randomUUID();
     const now = Date.now();
 
     const finalReminderAt = type === 'note' ? undefined : reminderAt;
+    const serializedImages = images ? JSON.stringify(images) : null;
 
     await db.runAsync(
         `INSERT INTO notes 
-   (id, title, content, type, reminder_at, is_pinned, created_at, updated_at) 
-   VALUES (?, ?, ?, ?, ?, 0, ?, ?)`,
-        [id, title, content, type, finalReminderAt ?? null, now, now]
+   (id, title, content, type, reminder_at, is_pinned, audio_uri, images, created_at, updated_at) 
+   VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`,
+        [id, title, content, type, finalReminderAt ?? null, audioUri ?? null, serializedImages, now, now]
     );
 
     return {
@@ -52,6 +62,8 @@ export const createNote = async (
         type,
         reminder_at: finalReminderAt,
         is_pinned: 0,
+        audio_uri: audioUri,
+        images: images,
         created_at: now,
         updated_at: now,
     };
@@ -63,7 +75,9 @@ export const updateNote = async (
     content?: string,
     type?: 'note' | 'reminder',
     reminderAt?: number,
-    isPinned?: number
+    isPinned?: number,
+    audioUri?: string,
+    images?: ImagePickerAsset[]
 ): Promise<Note> => {
     const db = await getDb();
     const now = Date.now();
@@ -77,10 +91,13 @@ export const updateNote = async (
     const updatedReminderAt =
         updatedType === 'note' ? undefined : (reminderAt ?? existing.reminder_at);
     const updatedIsPinned = isPinned ?? existing.is_pinned ?? 0;
+    const updatedAudioUri = audioUri !== undefined ? audioUri : existing.audio_uri;
+    const updatedImages = images !== undefined ? images : existing.images;
+    const serializedImages = updatedImages ? JSON.stringify(updatedImages) : null;
 
     await db.runAsync(
         `UPDATE notes 
-   SET title = ?, content = ?, type = ?, reminder_at = ?, is_pinned = ?, updated_at = ? 
+   SET title = ?, content = ?, type = ?, reminder_at = ?, is_pinned = ?, audio_uri = ?, images = ?, updated_at = ? 
    WHERE id = ?`,
         [
             updatedTitle,
@@ -88,6 +105,8 @@ export const updateNote = async (
             updatedType,
             updatedReminderAt ?? null,
             updatedIsPinned,
+            updatedAudioUri ?? null,
+            serializedImages,
             now,
             id,
         ]
@@ -100,6 +119,8 @@ export const updateNote = async (
         type: updatedType,
         reminder_at: updatedReminderAt,
         is_pinned: updatedIsPinned,
+        audio_uri: updatedAudioUri,
+        images: updatedImages,
         updated_at: now,
     };
 };
@@ -135,7 +156,10 @@ export const searchNotes = async (
   `;
 
     const results = await db.getAllAsync<any>(sql);
-    return results;
+    return results.map(row => ({
+        ...row,
+        images: row.images ? JSON.parse(row.images) : undefined
+    }));
 };
 
 export const getNotesCounts = async (

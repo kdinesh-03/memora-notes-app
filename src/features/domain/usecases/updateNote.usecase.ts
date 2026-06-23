@@ -1,3 +1,4 @@
+import type { ImagePickerAsset } from 'expo-image-picker';
 import { notesRepository } from '../../data/repository/NotesRepositoryImpl';
 import { Note } from '../entities/Note';
 
@@ -7,7 +8,9 @@ export const updateNoteUseCase = async (
     content?: string,
     type?: 'note' | 'reminder',
     reminderAt?: number,
-    isPinned?: number
+    isPinned?: number,
+    audioUri?: string,
+    images?: ImagePickerAsset[]
 ): Promise<Note> => {
-    return await notesRepository.updateNote(id, title, content, type, reminderAt, isPinned);
+    return await notesRepository.updateNote(id, title, content, type, reminderAt, isPinned, audioUri, images);
 };

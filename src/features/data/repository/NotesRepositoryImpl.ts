@@ -1,3 +1,4 @@
+import type { ImagePickerAsset } from 'expo-image-picker';
 import { Note } from '../../domain/entities/Note';
 import {
     createNote,
@@ -23,9 +24,11 @@ export const notesRepository = {
         title: string,
         content: string,
         type: 'note' | 'reminder',
-        reminderAt?: number
+        reminderAt?: number,
+        audioUri?: string,
+        images?: ImagePickerAsset[]
     ): Promise<Note> {
-        return await createNote(title, content, type, reminderAt);
+        return await createNote(title, content, type, reminderAt, audioUri, images);
     },
 
     async updateNote(
@@ -34,9 +37,11 @@ export const notesRepository = {
         content?: string,
         type?: 'note' | 'reminder',
         reminderAt?: number,
-        isPinned?: number
+        isPinned?: number,
+        audioUri?: string,
+        images?: ImagePickerAsset[]
     ): Promise<Note> {
-        return await updateNote(id, title, content, type, reminderAt, isPinned);
+        return await updateNote(id, title, content, type, reminderAt, isPinned, audioUri, images);
     },
 
     async deleteNote(id: string): Promise<void> {

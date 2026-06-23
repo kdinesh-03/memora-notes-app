@@ -1,1 +1,3 @@
-<resources/>
+<resources>
+  <color name="expoCropToolbarColor">#000000</color>
+</resources>

@@ -1,8 +1,8 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Bell, Pin, StickyNote } from 'lucide-react-native';
-import { fonts } from '../../../shared/utils/fonts';
-import { Note } from '../../domain/entities/Note';
+import { fonts } from '../../../../shared/utils/fonts';
+import { Note } from '../../../domain/entities/Note';
 
 const formatUpcomingTime = (timestamp?: number) => {
     if (!timestamp) return '';
@@ -74,6 +74,7 @@ export const NoteItem = memo(({ note, onPress, onTogglePin, onLongPress, isActiv
             <Text style={styles.noteSnippet} numberOfLines={2}>
                 {note.content || 'No content'}
             </Text>
+
             <View style={styles.footer}>
                 <View style={styles.footerLeft}>
                     {note.type === 'reminder' ? (

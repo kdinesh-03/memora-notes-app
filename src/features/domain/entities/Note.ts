@@ -1,3 +1,5 @@
+import type { ImagePickerAsset } from 'expo-image-picker';
+
 export interface Note {
     id: string;
     title: string;
@@ -5,6 +7,8 @@ export interface Note {
     type: 'note' | 'reminder';
     reminder_at?: number;
     is_pinned?: number;
+    audio_uri?: string;
+    images?: ImagePickerAsset[];
     created_at: number;
     updated_at: number;
 }

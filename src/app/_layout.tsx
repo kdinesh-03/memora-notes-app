@@ -36,12 +36,26 @@ export default function RootLayout() {
     }
 
     return (
-        <GestureHandlerRootView style={{ flex: 1 }}>
+        <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000' }}>
             <SafeAreaProvider>
                 <KeyboardProvider>
                     <ToastProvider>
                         <StatusBar style="light" />
-                        <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }} />
+                        <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
+                            <Stack.Screen name="index" />
+                            <Stack.Screen name="editor" />
+                            <Stack.Screen
+                                name="register"
+                                options={{
+                                    presentation: 'formSheet',
+                                    sheetCornerRadius: 20,
+                                    sheetElevation: 10,
+                                    sheetGrabberVisible: true,
+                                    sheetResizeAnimationEnabled: true,
+                                    keyboardHandlingEnabled: true,
+                                }}
+                            />
+                        </Stack>
                     </ToastProvider>
                 </KeyboardProvider>
             </SafeAreaProvider>

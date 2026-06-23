@@ -1,6 +1,6 @@
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
-import { AudioWaveform, Calendar, ChevronLeft, Mic, MicOff } from 'lucide-react-native';
+import { AudioWaveform, Calendar, ChevronLeft, Mic, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -24,6 +24,8 @@ import Animated, {
     Easing,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
+import Actions from '../components/editor/Actions';
+import ImageCollage from '../components/editor/ImageCollage';
 
 export const NoteEditorScreen = () => {
     const { id } = useLocalSearchParams<{ id?: string }>();
@@ -32,6 +34,8 @@ export const NoteEditorScreen = () => {
         content,
         noteType,
         reminderAt,
+        images,
+        setImages,
         handleTitleChange,
         handleContentChange,
         toggleType,
@@ -44,7 +48,7 @@ export const NoteEditorScreen = () => {
     const { bottom, top } = useSafeAreaInsets();
     const { isRecording, transcript, start, stop } = useSpeechToText();
 
-    const [focusedField, setFocusedField] = useState<'title' | 'content'>('title')
+    const [focusedField, setFocusedField] = useState<'title' | 'content'>('title');
 
     const [showPicker, setShowPicker] = useState(false);
     const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
@@ -97,17 +101,18 @@ export const NoteEditorScreen = () => {
 
     const handlePress = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-        if (isRecording) {
-            stop();
-        } else {
-            await start();
-        }
+        if (isRecording) stop();
+        else await start();
     };
+
+    const handleNoteType = async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        toggleType();
+    }
 
     if (loading) {
         return (
-            <View style={[styles.container, darkStyles.container, styles.centered]}>
+            <View style={[styles.container, styles.centered]}>
                 <ActivityIndicator size={20} color="#007AFF" />
             </View>
         );
@@ -119,208 +124,215 @@ export const NoteEditorScreen = () => {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={[
                     styles.container,
-                    darkStyles.container,
                     { paddingBottom: bottom },
                 ]}
                 keyboardShouldPersistTaps="handled"
             >
-                <View style={styles.header}>
-                    <Pressable onPress={router.back} style={styles.backButton}>
-                        <ChevronLeft color={'#FFF'} size={28} />
-                        <Text style={[styles.backText, { color: '#FFF' }]}>Back</Text>
-                    </Pressable>
-
-                    <View style={styles.headerActions}>
-                        <Pressable
-                            style={[
-                                styles.typeButton,
-                                noteType === 'reminder' && styles.typeButtonActive,
-                            ]}
-                            onPress={toggleType}
-                        >
-                            <Text
-                                style={[
-                                    styles.typeText,
-                                    noteType === 'reminder' && styles.typeTextActive,
-                                ]}
-                            >
-                                {noteType === 'reminder' ? 'Reminder' : 'Note'}
-                            </Text>
-                        </Pressable>
-                        <Pressable
-                            onPress={handleSave}
-                            disabled={saving}
-                            style={[styles.saveButton, saving && { opacity: 0.7 }]}
-                        >
-                            {saving ? (
-                                <ActivityIndicator size={20} color="#007AFF" />
-                            ) : (
-                                <Text style={styles.saveText}>Save</Text>
-                            )}
+                <View style={{ flex: 1 }}>
+                    <View style={styles.header}>
+                        <Pressable onPress={router.back} style={styles.backButton}>
+                            <ChevronLeft color={'#FFF'} size={28} />
+                            <Text style={[styles.backText, { color: '#FFF' }]}>Back</Text>
                         </Pressable>
                     </View>
-                </View>
 
-                <View style={styles.inputContainer}>
-                    <TextInput
-                        placeholder="Title"
-                        placeholderTextColor={'#666'}
-                        style={[styles.titleInput, darkStyles.text]}
-                        value={title}
-                        onChangeText={handleTitleChange}
-                        multiline
-                        autoFocus
-                        autoCorrect
-                        onFocus={() => setFocusedField('title')}
+                    <Actions
+                        handleNoteType={handleNoteType}
+                        noteType={noteType}
+                        handleImage={(assets) => {
+                            setImages(prev => {
+                                const newImages = [...prev, ...assets];
+                                return newImages.slice(0, 5);
+                            });
+                        }}
                     />
-                    {focusedField === 'title' && (
-                        <Pressable
-                            onPress={handlePress}
-                            style={styles.recordingBtn}
-                            hitSlop={10}
-                        >
-                            {isRecording && (
-                                <Animated.View style={[styles.ring, animatedStyle]} />
-                            )}
-                            {isRecording ? (
-                                <AudioWaveform color="#007AFF" size={20} />
-                            ) : (
-                                <Mic color="#007AFF" size={20} />
-                            )}
-                        </Pressable>
-                    )}
-                </View>
 
-                <View style={styles.inputContainer}>
-                    <TextInput
-                        placeholder="Start writing..."
-                        placeholderTextColor={'#666'}
-                        style={[styles.contentInput, darkStyles.text]}
-                        value={content}
-                        onChangeText={handleContentChange}
-                        multiline
-                        textAlignVertical="top"
-                        autoCorrect
-                        onFocus={() => setFocusedField('content')}
-                    />
-                    {focusedField === 'content' && (
-                        <Pressable
-                            onPress={handlePress}
-                            style={styles.recordingBtn}
-                            hitSlop={10}
-                        >
-                            {isRecording && (
-                                <Animated.View style={[styles.ring, animatedStyle]} />
+                    <View style={{ flex: 1, paddingHorizontal: 16 }}>
+                        <View style={styles.inputContainer}>
+                            <TextInput
+                                placeholder="Title"
+                                placeholderTextColor={'#666'}
+                                style={styles.titleInput}
+                                value={title}
+                                onChangeText={handleTitleChange}
+                                multiline
+                                autoFocus
+                                autoCorrect
+                                onFocus={() => setFocusedField('title')}
+                            />
+                            {focusedField === 'title' && (
+                                <Pressable
+                                    onPress={handlePress}
+                                    style={styles.recordingBtn}
+                                    hitSlop={10}
+                                >
+                                    {isRecording && (
+                                        <Animated.View style={[styles.ring, animatedStyle]} />
+                                    )}
+                                    {isRecording ? (
+                                        <AudioWaveform color="#007AFF" size={20} />
+                                    ) : (
+                                        <Mic color="#007AFF" size={20} />
+                                    )}
+                                </Pressable>
                             )}
-                            {isRecording ? (
-                                <AudioWaveform color="#007AFF" size={20} />
-                            ) : (
-                                <Mic color="#007AFF" size={20} />
-                            )}
-                        </Pressable>
-                    )}
-                </View>
-
-                {noteType === 'reminder' && (
-                    <View style={styles.reminderSettings}>
-                        <View style={styles.reminderRow}>
-                            <Text style={styles.reminderLabel}>Remind At</Text>
-                            <Pressable
-                                onPress={() => {
-                                    setPickerMode('date');
-                                    setShowPicker(true);
-                                }}
-                                style={styles.datePickerButton}
-                            >
-                                <Calendar size={16} color="#007AFF" />
-                                <Text style={styles.datePickerText}>
-                                    {formatDateTime(reminderAt)}
-                                </Text>
-                            </Pressable>
                         </View>
 
-                        {showPicker && (
-                            <>
-                                <DateTimePicker
-                                    value={reminderAt ? new Date(reminderAt) : new Date()}
-                                    mode={Platform.OS === 'ios' ? 'datetime' : pickerMode}
-                                    is24Hour={false}
-                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                    minimumDate={new Date()}
-                                    onValueChange={(event: DateTimePickerChangeEvent, date: Date) => {
-                                        const newDate = new Date(reminderAt || Date.now());
-                                        if (Platform.OS === 'android') {
-                                            if (pickerMode === 'date') {
-                                                newDate.setFullYear(
-                                                    date.getFullYear(),
-                                                    date.getMonth(),
-                                                    date.getDate()
-                                                );
-                                                setReminderAt(newDate.getTime());
-                                                setShowPicker(false);
-                                                setTimeout(() => {
-                                                    setPickerMode('time');
-                                                    setShowPicker(true);
-                                                }, 100);
-                                            } else {
-                                                newDate.setHours(
-                                                    date.getHours(),
-                                                    date.getMinutes(),
-                                                    0,
-                                                    0
-                                                );
-                                                setReminderAt(newDate.getTime());
-                                                setShowPicker(false);
-                                                setPickerMode('date');
-                                            }
-                                        } else {
-                                            const finalDate = new Date(date);
-                                            finalDate.setSeconds(0);
-                                            finalDate.setMilliseconds(0);
-                                            setReminderAt(finalDate.getTime());
-                                        }
-                                    }}
-                                    onDismiss={() => {
-                                        setShowPicker(false);
-                                        setPickerMode('date');
-                                    }}
-                                    textColor="#FFF"
-                                    themeVariant="dark"
-                                />
-                                {Platform.OS === 'ios' && (
-                                    <Pressable
-                                        onPress={() => setShowPicker(false)}
-                                        style={styles.doneButton}
-                                    >
-                                        <Text style={styles.doneButtonText}>Done</Text>
-                                    </Pressable>
-                                )}
-                            </>
-                        )}
+                        <ImageCollage
+                            images={images}
+                            onRemoveImage={(index) => {
+                                setImages(prev => prev.filter((_, i) => i !== index));
+                            }}
+                        />
+
+                        <View style={styles.inputContainer}>
+                            <TextInput
+                                placeholder="Start writing..."
+                                placeholderTextColor={'#666'}
+                                style={styles.contentInput}
+                                value={content}
+                                onChangeText={handleContentChange}
+                                multiline
+                                textAlignVertical="top"
+                                autoCorrect
+                                onFocus={() => setFocusedField('content')}
+                            />
+                            {focusedField === 'content' && (
+                                <Pressable
+                                    onPress={handlePress}
+                                    style={styles.recordingBtn}
+                                    hitSlop={10}
+                                >
+                                    {isRecording && (
+                                        <Animated.View style={[styles.ring, animatedStyle]} />
+                                    )}
+                                    {isRecording ? (
+                                        <AudioWaveform color="#007AFF" size={20} />
+                                    ) : (
+                                        <Mic color="#007AFF" size={20} />
+                                    )}
+                                </Pressable>
+                            )}
+                        </View>
                     </View>
-                )}
+                </View>
+
+                <View style={{ paddingHorizontal: 16, gap: 16 }}>
+                    {noteType === 'reminder' && (
+                        <View style={styles.reminderSettings}>
+                            <View style={styles.reminderRow}>
+                                <Text style={styles.reminderLabel}>Remind At</Text>
+                                <Pressable
+                                    onPress={() => {
+                                        setPickerMode('date');
+                                        setShowPicker(true);
+                                    }}
+                                    style={styles.datePickerButton}
+                                >
+                                    <Calendar size={16} color="#007AFF" />
+                                    <Text style={styles.datePickerText}>
+                                        {formatDateTime(reminderAt)}
+                                    </Text>
+                                </Pressable>
+                            </View>
+
+                            {showPicker && (
+                                <>
+                                    <DateTimePicker
+                                        value={reminderAt ? new Date(reminderAt) : new Date()}
+                                        mode={Platform.OS === 'ios' ? 'datetime' : pickerMode}
+                                        is24Hour={false}
+                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                        minimumDate={new Date()}
+                                        onValueChange={(event: DateTimePickerChangeEvent, date: Date) => {
+                                            const newDate = new Date(reminderAt || Date.now());
+                                            if (Platform.OS === 'android') {
+                                                if (pickerMode === 'date') {
+                                                    newDate.setFullYear(
+                                                        date.getFullYear(),
+                                                        date.getMonth(),
+                                                        date.getDate()
+                                                    );
+                                                    setReminderAt(newDate.getTime());
+                                                    setShowPicker(false);
+                                                    setTimeout(() => {
+                                                        setPickerMode('time');
+                                                        setShowPicker(true);
+                                                    }, 100);
+                                                } else {
+                                                    newDate.setHours(
+                                                        date.getHours(),
+                                                        date.getMinutes(),
+                                                        0,
+                                                        0
+                                                    );
+                                                    setReminderAt(newDate.getTime());
+                                                    setShowPicker(false);
+                                                    setPickerMode('date');
+                                                }
+                                            } else {
+                                                const finalDate = new Date(date);
+                                                finalDate.setSeconds(0);
+                                                finalDate.setMilliseconds(0);
+                                                setReminderAt(finalDate.getTime());
+                                            }
+                                        }}
+                                        onDismiss={() => {
+                                            setShowPicker(false);
+                                            setPickerMode('date');
+                                        }}
+                                        textColor="#FFF"
+                                        themeVariant="dark"
+                                    />
+                                    {Platform.OS === 'ios' && (
+                                        <Pressable
+                                            onPress={() => setShowPicker(false)}
+                                            style={styles.doneButton}
+                                        >
+                                            <Text style={styles.doneButtonText}>Done</Text>
+                                        </Pressable>
+                                    )}
+                                </>
+                            )}
+                        </View>
+                    )}
+                    <Pressable
+                        onPress={handleSave}
+                        disabled={saving}
+                        style={[styles.saveButton, saving && { opacity: 0.7 }]}
+                    >
+                        {saving ? (
+                            <ActivityIndicator size={20} color="#007AFF" />
+                        ) : (
+                            <Text style={styles.saveText}>Save</Text>
+                        )}
+                    </Pressable>
+                </View>
             </ScrollView>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flexGrow: 1, paddingHorizontal: 16 },
+    container: { flexGrow: 1, backgroundColor: '#000' },
     centered: { justifyContent: 'center', alignItems: 'center' },
     header: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        paddingTop: 10,
+        justifyContent: "space-between",
+        gap: 16,
         paddingBottom: 20,
+        paddingTop: 5,
+        paddingHorizontal: 16
     },
-    backButton: { flexDirection: 'row', alignItems: 'center', marginLeft: -10 },
+    backButton: { flexDirection: 'row', alignItems: 'center', left: -8 },
     backText: { fontSize: 18, ...fonts.fontMedium },
     saveButton: {
+        alignItems: 'center',
         backgroundColor: '#1c1c1e',
         paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
+        paddingVertical: 14,
+        borderRadius: 10,
         borderWidth: 1,
         borderColor: '#333',
     },
@@ -328,30 +340,7 @@ const styles = StyleSheet.create({
         color: '#007AFF',
         fontSize: 16,
         ...fonts.fontSemiBold,
-    },
-    headerActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    typeButton: {
-        backgroundColor: '#1c1c1e',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: '#333',
-    },
-    typeButtonActive: {
-        borderColor: '#007AFF',
-    },
-    typeText: {
-        color: '#AAA',
-        fontSize: 16,
-        ...fonts.fontMedium,
-    },
-    typeTextActive: {
-        color: '#007AFF',
+        letterSpacing: 0.2
     },
     reminderSettings: {
         marginTop: 20,
@@ -365,7 +354,12 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    inputContainer: { position: "relative", marginBottom: 20, display: "flex", justifyContent: "center" },
+    inputContainer: {
+        position: "relative",
+        marginTop: 24,
+        display: "flex",
+        justifyContent: "center",
+    },
     recordingBtn: {
         backgroundColor: '#1c1c1e',
         width: 40,
@@ -397,12 +391,14 @@ const styles = StyleSheet.create({
         fontSize: 32,
         ...fonts.fontBold,
         maxHeight: 120,
+        color: '#FFF'
     },
     contentInput: {
         flex: 1,
         fontSize: 18,
         lineHeight: 24,
         ...fonts.fontRegular,
+        color: '#FFF'
     },
     datePickerButton: {
         flexDirection: 'row',
@@ -460,9 +456,4 @@ const styles = StyleSheet.create({
         color: '#007AFF',
         ...fonts.fontSemiBold,
     },
-});
-
-const darkStyles = StyleSheet.create({
-    container: { backgroundColor: '#000' },
-    text: { color: '#FFF' },
 });

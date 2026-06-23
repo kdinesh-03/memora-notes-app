@@ -11,11 +11,12 @@ import DraggableFlatList, {
 } from 'react-native-draggable-flatlist';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Note } from '../../domain/entities/Note';
+import * as Haptics from 'expo-haptics';
+import { Note } from '../../../domain/entities/Note';
 import { NoteItem } from './NoteItem';
 import { SwipeableNote } from './SwipeableNote';
-import { fonts } from '../../../shared/utils/fonts';
-import { useStore } from '../../../shared/store/useStore';
+import { fonts } from '../../../../shared/utils/fonts';
+import { useStore } from '../../../../shared/store/useStore';
 
 interface NotesTabProps {
     notes: Note[];
@@ -33,7 +34,8 @@ export const NotesTab = ({
     const { bottom } = useSafeAreaInsets();
     const { reorderNotes } = useStore();
 
-    const handlePress = useCallback((id: string) => {
+    const handlePress = useCallback(async (id: string) => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         router.push({ pathname: '/editor', params: { id } });
     }, []);
 
@@ -68,7 +70,9 @@ export const NotesTab = ({
     const ListEmptyComponent = useMemo(() => {
         if (loading && notes.length === 0) {
             return (
-                <ActivityIndicator size={20} />
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                    <ActivityIndicator size={20} color={'#007AFF'} />
+                </View>
             );
         }
         return (
