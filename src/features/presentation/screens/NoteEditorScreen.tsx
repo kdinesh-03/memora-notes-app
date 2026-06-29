@@ -1,6 +1,6 @@
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
-import { AudioWaveform, Calendar, ChevronLeft, Mic, X } from 'lucide-react-native';
+import { Calendar, ChevronLeft } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -13,14 +13,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNoteEditor } from '../hooks/useNoteEditor';
-import { useSpeechToText } from '../hooks/useSpeechToText';
-import Animated, {
-    useSharedValue,
-    useAnimatedStyle,
-    withRepeat,
-    withTiming,
-    Easing,
-} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import Actions from '../components/editor/Actions';
 import ImageCollage from '../components/editor/ImageCollage';
@@ -52,9 +44,6 @@ export const NoteEditorScreen = () => {
     } = useNoteEditor(id);
 
     const { bottom, top } = useSafeAreaInsets();
-    const { isRecording, transcript, start, stop } = useSpeechToText();
-
-    const [focusedField, setFocusedField] = useState<'title' | 'content'>('title');
 
     const [showPicker, setShowPicker] = useState(false);
     const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
@@ -69,13 +58,6 @@ export const NoteEditorScreen = () => {
             await handleToggleLock();
         }
     };
-
-    useEffect(() => {
-        if (transcript) {
-            if (focusedField === 'title') handleTitleChange(transcript);
-            else handleContentChange(transcript);
-        }
-    }, [transcript]);
 
     useEffect(() => {
         if (noteType === 'note') {
@@ -94,32 +76,6 @@ export const NoteEditorScreen = () => {
             hour12: true,
         });
         return `${dateStr}, ${timeStr.toUpperCase()}`;
-    };
-
-    const rotation = useSharedValue(0);
-
-    useEffect(() => {
-        if (isRecording) {
-            rotation.value = withRepeat(
-                withTiming(360, {
-                    duration: 2000,
-                    easing: Easing.linear,
-                }),
-                -1
-            );
-        } else {
-            rotation.value = 0;
-        }
-    }, [isRecording]);
-
-    const animatedStyle = useAnimatedStyle(() => ({
-        transform: [{ rotate: `${rotation.value}deg` }],
-    }));
-
-    const handlePress = async () => {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        if (isRecording) stop();
-        else await start();
     };
 
     const handleNoteType = async () => {
@@ -170,7 +126,7 @@ export const NoteEditorScreen = () => {
                     />
 
                     <View style={{ flex: 1, paddingHorizontal: 16 }}>
-                        <View style={styles.inputContainer}>
+                        <View>
                             <TextInput
                                 placeholder="Title"
                                 placeholderTextColor={colors.textTertiary}
@@ -180,46 +136,19 @@ export const NoteEditorScreen = () => {
                                 multiline
                                 autoFocus
                                 autoCorrect
-                                onFocus={() => setFocusedField('title')}
                             />
-                            {focusedField === 'title' && (
-                                <Pressable
-                                    onPress={handlePress}
-                                    style={[
-                                        styles.recordingBtn,
-                                        { backgroundColor: colors.micIconBg },
-                                    ]}
-                                    hitSlop={10}
-                                >
-                                    {isRecording && (
-                                        <Animated.View
-                                            style={[
-                                                styles.ring,
-                                                animatedStyle,
-                                                {
-                                                    borderTopColor: colors.accent,
-                                                    borderRightColor: colors.accent,
-                                                },
-                                            ]}
-                                        />
-                                    )}
-                                    {isRecording ? (
-                                        <AudioWaveform color={colors.accent} size={20} />
-                                    ) : (
-                                        <Mic color={colors.accent} size={20} />
-                                    )}
-                                </Pressable>
-                            )}
                         </View>
 
-                        <ImageCollage
-                            images={images}
-                            onRemoveImage={(index) => {
-                                setImages((prev) => prev.filter((_, i) => i !== index));
-                            }}
-                        />
+                        {images.length > 0 && (
+                            <ImageCollage
+                                images={images}
+                                onRemoveImage={(index) => {
+                                    setImages((prev) => prev.filter((_, i) => i !== index));
+                                }}
+                            />
+                        )}
 
-                        <View style={styles.inputContainer}>
+                        <View>
                             <TextInput
                                 placeholder="Start writing..."
                                 placeholderTextColor={colors.textTertiary}
@@ -229,36 +158,7 @@ export const NoteEditorScreen = () => {
                                 multiline
                                 textAlignVertical="top"
                                 autoCorrect
-                                onFocus={() => setFocusedField('content')}
                             />
-                            {focusedField === 'content' && (
-                                <Pressable
-                                    onPress={handlePress}
-                                    style={[
-                                        styles.recordingBtn,
-                                        { backgroundColor: colors.micIconBg },
-                                    ]}
-                                    hitSlop={10}
-                                >
-                                    {isRecording && (
-                                        <Animated.View
-                                            style={[
-                                                styles.ring,
-                                                animatedStyle,
-                                                {
-                                                    borderTopColor: colors.accent,
-                                                    borderRightColor: colors.accent,
-                                                },
-                                            ]}
-                                        />
-                                    )}
-                                    {isRecording ? (
-                                        <AudioWaveform color={colors.accent} size={20} />
-                                    ) : (
-                                        <Mic color={colors.accent} size={20} />
-                                    )}
-                                </Pressable>
-                            )}
                         </View>
                     </View>
                 </View>

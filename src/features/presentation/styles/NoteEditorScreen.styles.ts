@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 import { fonts } from '../../../shared/utils/fonts';
 
 export const styles = StyleSheet.create({
-    container: { flexGrow: 1 },
+    container: { flexGrow: 1, gap: 20 },
     centered: { justifyContent: 'center', alignItems: 'center' },
     header: {
         flexDirection: 'row',
@@ -38,12 +38,6 @@ export const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    inputContainer: {
-        position: 'relative',
-        marginTop: 24,
-        display: 'flex',
-        justifyContent: 'center',
-    },
     recordingBtn: {
         width: 40,
         height: 40,
@@ -68,12 +62,13 @@ export const styles = StyleSheet.create({
         ...fonts.fontMedium,
     },
     titleInput: {
+        marginTop: 24,
         fontSize: 32,
         ...fonts.fontBold,
         maxHeight: 120,
     },
     contentInput: {
-        flex: 1,
+        marginTop: 24,
         fontSize: 18,
         lineHeight: 24,
         ...fonts.fontRegular,

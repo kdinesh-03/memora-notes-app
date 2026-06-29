@@ -1,7 +1,22 @@
-import { View, Pressable, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { View, Pressable, StyleSheet, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { ImagePickerAsset } from 'expo-image-picker';
 import { X } from 'lucide-react-native';
+
+const { width } = Dimensions.get('window');
+
+const STACK_SIZE = width * 0.55;
+
+const positions = [
+    { top: -20, left: 80 },
+    { top: 30, left: 10 },
+    { top: 40, right: 10 },
+    { bottom: -20, left: 20 },
+    { bottom: -20, right: 20 },
+];
+
+const rotations = ['-10deg', '8deg', '-6deg', '10deg', '-8deg'];
 
 const ImageCollage = ({
     images,
@@ -10,116 +25,38 @@ const ImageCollage = ({
     images: ImagePickerAsset[];
     onRemoveImage: (index: number) => void;
 }) => {
-    if (!images || images.length === 0) return null;
-
-    const renderRemoveButton = (index: number) => (
-        <Pressable style={styles.removeImageBtn} onPress={() => onRemoveImage(index)} hitSlop={8}>
-            <X size={14} color="#FFF" />
-        </Pressable>
-    );
-
-    const len = images.length;
-
-    if (len === 1) {
-        return (
-            <View style={styles.collageContainer}>
-                <View style={styles.singleImageWrapper}>
-                    <Image source={{ uri: images[0].uri }} style={styles.singleImage} />
-                    {renderRemoveButton(0)}
-                </View>
-            </View>
-        );
-    }
-
-    if (len === 2) {
-        return (
-            <View style={[styles.collageContainer, styles.rowGap]}>
-                {images.map((img, i) => (
-                    <View key={i} style={styles.halfImageWrapper}>
-                        <Image source={{ uri: img.uri }} style={styles.collageImage} />
-                        {renderRemoveButton(i)}
-                    </View>
-                ))}
-            </View>
-        );
-    }
-
-    if (len === 3) {
-        return (
-            <View style={[styles.collageContainer, styles.rowContainer]}>
-                <View style={styles.twoThirdsImageWrapper}>
-                    <Image source={{ uri: images[0].uri }} style={styles.collageImage} />
-                    {renderRemoveButton(0)}
-                </View>
-                <View style={styles.oneThirdColumn}>
-                    <View style={styles.oneThirdImageWrapper}>
-                        <Image source={{ uri: images[1].uri }} style={styles.collageImage} />
-                        {renderRemoveButton(1)}
-                    </View>
-                    <View style={styles.oneThirdImageWrapper}>
-                        <Image source={{ uri: images[2].uri }} style={styles.collageImage} />
-                        {renderRemoveButton(2)}
-                    </View>
-                </View>
-            </View>
-        );
-    }
-
-    if (len === 4) {
-        return (
-            <View style={[styles.collageContainer, styles.gridContainer]}>
-                <View style={styles.gridRow}>
-                    <View style={styles.halfImageWrapper}>
-                        <Image source={{ uri: images[0].uri }} style={styles.collageImage} />
-                        {renderRemoveButton(0)}
-                    </View>
-                    <View style={styles.halfImageWrapper}>
-                        <Image source={{ uri: images[1].uri }} style={styles.collageImage} />
-                        {renderRemoveButton(1)}
-                    </View>
-                </View>
-                <View style={styles.gridRow}>
-                    <View style={styles.halfImageWrapper}>
-                        <Image source={{ uri: images[2].uri }} style={styles.collageImage} />
-                        {renderRemoveButton(2)}
-                    </View>
-                    <View style={styles.halfImageWrapper}>
-                        <Image source={{ uri: images[3].uri }} style={styles.collageImage} />
-                        {renderRemoveButton(3)}
-                    </View>
-                </View>
-            </View>
-        );
-    }
+    const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
     return (
-        <View style={[styles.collageContainer, styles.rowContainer]}>
-            <View style={styles.twoThirdsImageWrapper}>
-                <Image source={{ uri: images[0].uri }} style={styles.collageImage} />
-                {renderRemoveButton(0)}
-            </View>
-            <View style={styles.oneThirdColumn}>
-                <View style={styles.gridRow}>
-                    <View style={styles.oneThirdImageWrapper}>
-                        <Image source={{ uri: images[1].uri }} style={styles.collageImage} />
-                        {renderRemoveButton(1)}
-                    </View>
-                    <View style={styles.oneThirdImageWrapper}>
-                        <Image source={{ uri: images[2].uri }} style={styles.collageImage} />
-                        {renderRemoveButton(2)}
-                    </View>
-                </View>
-                <View style={styles.gridRow}>
-                    <View style={styles.oneThirdImageWrapper}>
-                        <Image source={{ uri: images[3].uri }} style={styles.collageImage} />
-                        {renderRemoveButton(3)}
-                    </View>
-                    <View style={styles.oneThirdImageWrapper}>
-                        <Image source={{ uri: images[4].uri }} style={styles.collageImage} />
-                        {renderRemoveButton(4)}
-                    </View>
-                </View>
-            </View>
+        <View style={[styles.container, { marginBottom: images.length >= 4 ? 40 : -40 }]}>
+            {images.slice(0, 5).map((img, index) => {
+                const isActive = activeIndex === index;
+
+                return (
+                    <Pressable
+                        key={index}
+                        onPress={() => setActiveIndex(index)}
+                        style={[
+                            styles.card,
+                            positions[index],
+                            {
+                                zIndex: isActive ? 100 : index,
+                                transform: [{ rotate: isActive ? '0deg' : rotations[index] }],
+                            },
+                        ]}
+                    >
+                        <Image source={{ uri: img.uri }} style={styles.image} />
+
+                        <Pressable
+                            style={styles.removeBtn}
+                            onPress={() => onRemoveImage(index)}
+                            hitSlop={10}
+                        >
+                            <X size={14} color="#fff" />
+                        </Pressable>
+                    </Pressable>
+                );
+            })}
         </View>
     );
 };
@@ -127,73 +64,39 @@ const ImageCollage = ({
 export default ImageCollage;
 
 const styles = StyleSheet.create({
-    collageContainer: {
-        width: '100%',
-        height: 220,
-        marginVertical: 12,
-        borderRadius: 12,
+    container: {
+        height: 280,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 40,
+    },
+    card: {
+        position: 'absolute',
+        width: STACK_SIZE,
+        aspectRatio: 1,
+        borderRadius: 14,
         overflow: 'hidden',
+        backgroundColor: '#fff',
+        shadowColor: '#000',
+        shadowOpacity: 0.25,
+        shadowRadius: 10,
+        elevation: 8,
     },
-    rowContainer: {
-        flexDirection: 'row',
-        gap: 6,
-    },
-    rowGap: {
-        flexDirection: 'row',
-        gap: 6,
-    },
-    gridContainer: {
-        flexDirection: 'column',
-        gap: 6,
-    },
-    gridRow: {
-        flex: 1,
-        flexDirection: 'row',
-        gap: 6,
-    },
-    singleImageWrapper: {
+
+    image: {
         width: '100%',
         height: '100%',
-        position: 'relative',
     },
-    singleImage: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 12,
-    },
-    halfImageWrapper: {
-        flex: 1,
-        height: '100%',
-        position: 'relative',
-    },
-    twoThirdsImageWrapper: {
-        flex: 2,
-        height: '100%',
-        position: 'relative',
-    },
-    oneThirdColumn: {
-        flex: 1,
-        gap: 6,
-    },
-    oneThirdImageWrapper: {
-        flex: 1,
-        position: 'relative',
-    },
-    collageImage: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 8,
-    },
-    removeImageBtn: {
+
+    removeBtn: {
         position: 'absolute',
         top: 6,
         right: 6,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        backgroundColor: 'rgba(0,0,0,0.7)',
         borderRadius: 12,
         width: 22,
         height: 22,
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 10,
     },
 });

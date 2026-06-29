@@ -262,7 +262,7 @@ export const MenuScreen = () => {
                 <View style={{ flex: 1 }} />
 
                 <Text style={[styles.versionText, { color: colors.textTertiary }]}>
-                    Memora · v{Constants.default.expoConfig?.version}
+                    Memora • v{Constants.default.expoConfig?.version}
                 </Text>
             </ScrollView>
 

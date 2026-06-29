@@ -1,7 +1,6 @@
 import { fonts } from '@/shared/utils/fonts';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { Mic, Image, Lock, Unlock } from 'lucide-react-native';
-import { useMemo } from 'react';
 import { ImagePickerAsset } from 'expo-image-picker';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
@@ -111,7 +110,6 @@ const Actions = ({ handleNoteType, noteType, handleImage, handleLock, isLocked }
                 </PressableScale>
                 <View style={[styles.verticalLine, { backgroundColor: colors.border }]} />
 
-                {/* Record Voice Note */}
                 <PressableScale
                     style={[
                         styles.actionButton,
@@ -125,7 +123,6 @@ const Actions = ({ handleNoteType, noteType, handleImage, handleLock, isLocked }
                     </Text>
                 </PressableScale>
 
-                {/* Add Image */}
                 <PressableScale
                     style={[
                         styles.actionButton,
@@ -139,7 +136,6 @@ const Actions = ({ handleNoteType, noteType, handleImage, handleLock, isLocked }
                     </Text>
                 </PressableScale>
 
-                {/* Lock Note */}
                 <PressableScale
                     style={[
                         styles.actionButton,
@@ -186,7 +182,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 6,
         paddingHorizontal: 12,
-        paddingVertical: 6,
+        paddingVertical: 7,
         borderRadius: 20,
         borderWidth: 1,
         borderColor: '#333',
