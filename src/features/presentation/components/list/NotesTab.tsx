@@ -1,16 +1,10 @@
 import { useCallback, useMemo } from 'react';
-import {
-    ActivityIndicator,
-    StyleSheet,
-    Text,
-    View,
-} from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import DraggableFlatList, {
     RenderItemParams,
     ScaleDecorator,
 } from 'react-native-draggable-flatlist';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Note } from '../../../domain/entities/Note';
 import { NoteItem } from './NoteItem';
@@ -23,6 +17,8 @@ interface NotesTabProps {
     loading: boolean;
     onDelete: (id: string, type: 'note' | 'reminder') => void;
     onTogglePin: (note: Note) => void;
+    onNotePress: (id: string) => void;
+    activeTab: string;
 }
 
 export const NotesTab = ({
@@ -30,14 +26,19 @@ export const NotesTab = ({
     loading,
     onDelete,
     onTogglePin,
+    onNotePress,
+    activeTab,
 }: NotesTabProps) => {
     const { bottom } = useSafeAreaInsets();
     const { reorderNotes } = useStore();
 
-    const handlePress = useCallback(async (id: string) => {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        router.push({ pathname: '/editor', params: { id } });
-    }, []);
+    const handlePress = useCallback(
+        async (id: string) => {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            onNotePress(id);
+        },
+        [onNotePress]
+    );
 
     const handleDragEnd = useCallback(
         ({ data }: { data: Note[] }) => {
@@ -78,7 +79,15 @@ export const NotesTab = ({
         return (
             <View style={styles.emptyState}>
                 <Text style={styles.emptyText}>
-                    No notes found
+                    No{' '}
+                    {activeTab === 'all'
+                        ? 'notes/reminders'
+                        : activeTab === 'pinned'
+                          ? 'pinned notes/reminders'
+                          : activeTab === 'reminders'
+                            ? 'reminders'
+                            : 'notes'}{' '}
+                    found
                 </Text>
             </View>
         );
@@ -91,10 +100,7 @@ export const NotesTab = ({
             keyExtractor={keyExtractor}
             onDragEnd={handleDragEnd}
             ListEmptyComponent={ListEmptyComponent}
-            contentContainerStyle={[
-                styles.listContent,
-                { paddingBottom: bottom },
-            ]}
+            contentContainerStyle={[styles.listContent, { paddingBottom: bottom }]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             scrollEventThrottle={16}

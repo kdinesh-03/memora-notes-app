@@ -1,17 +1,19 @@
-import { View, Pressable, StyleSheet } from 'react-native'
+import { View, Pressable, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { ImagePickerAsset } from 'expo-image-picker';
 import { X } from 'lucide-react-native';
 
-const ImageCollage = ({ images, onRemoveImage }: { images: ImagePickerAsset[], onRemoveImage: (index: number) => void }) => {
+const ImageCollage = ({
+    images,
+    onRemoveImage,
+}: {
+    images: ImagePickerAsset[];
+    onRemoveImage: (index: number) => void;
+}) => {
     if (!images || images.length === 0) return null;
 
     const renderRemoveButton = (index: number) => (
-        <Pressable
-            style={styles.removeImageBtn}
-            onPress={() => onRemoveImage(index)}
-            hitSlop={8}
-        >
+        <Pressable style={styles.removeImageBtn} onPress={() => onRemoveImage(index)} hitSlop={8}>
             <X size={14} color="#FFF" />
         </Pressable>
     );
@@ -22,10 +24,7 @@ const ImageCollage = ({ images, onRemoveImage }: { images: ImagePickerAsset[], o
         return (
             <View style={styles.collageContainer}>
                 <View style={styles.singleImageWrapper}>
-                    <Image
-                        source={{ uri: images[0].uri }}
-                        style={styles.singleImage}
-                    />
+                    <Image source={{ uri: images[0].uri }} style={styles.singleImage} />
                     {renderRemoveButton(0)}
                 </View>
             </View>
@@ -125,10 +124,9 @@ const ImageCollage = ({ images, onRemoveImage }: { images: ImagePickerAsset[], o
     );
 };
 
-export default ImageCollage
+export default ImageCollage;
 
 const styles = StyleSheet.create({
-
     collageContainer: {
         width: '100%',
         height: 220,
@@ -198,4 +196,4 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         zIndex: 10,
     },
-})
+});

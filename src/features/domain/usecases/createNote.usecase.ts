@@ -3,12 +3,25 @@ import { notesRepository } from '../../data/repository/NotesRepositoryImpl';
 import { Note } from '../entities/Note';
 
 export const createNoteUseCase = async (
+    id: string,
     title: string,
     content: string,
     type: 'note' | 'reminder' = 'note',
     reminderAt?: number,
     audioUri?: string,
-    images?: ImagePickerAsset[]
+    images?: ImagePickerAsset[],
+    isLocked?: number,
+    userId?: string
 ): Promise<Note> => {
-    return await notesRepository.createNote(title, content, type, reminderAt, audioUri, images);
+    return await notesRepository.createNote(
+        id,
+        title,
+        content,
+        type,
+        reminderAt,
+        audioUri,
+        images,
+        isLocked,
+        userId
+    );
 };

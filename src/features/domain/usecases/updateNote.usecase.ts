@@ -10,7 +10,18 @@ export const updateNoteUseCase = async (
     reminderAt?: number,
     isPinned?: number,
     audioUri?: string,
-    images?: ImagePickerAsset[]
+    images?: ImagePickerAsset[],
+    isLocked?: number
 ): Promise<Note> => {
-    return await notesRepository.updateNote(id, title, content, type, reminderAt, isPinned, audioUri, images);
+    return await notesRepository.updateNote(
+        id,
+        title,
+        content,
+        type,
+        reminderAt,
+        isPinned,
+        audioUri,
+        images,
+        isLocked
+    );
 };

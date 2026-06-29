@@ -1,7 +1,6 @@
 import { fonts } from '@/shared/utils/fonts';
 import React, { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
-import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
+import { Text, View, KeyboardAvoidingView, Platform } from 'react-native';
 import Animated, {
     Easing,
     useAnimatedStyle,
@@ -9,6 +8,7 @@ import Animated, {
     withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useColors } from '@/shared/theme/colors';
 
 interface ToastProps {
     message: string;
@@ -24,7 +24,7 @@ const DURATION = 2000;
 
 export const Toast: ToastComponent = ({ message }) => {
     const { bottom } = useSafeAreaInsets();
-    const { height } = useReanimatedKeyboardAnimation();
+    const colors = useColors();
 
     const opacity = useSharedValue(0);
     const translateY = useSharedValue(50);
@@ -60,56 +60,49 @@ export const Toast: ToastComponent = ({ message }) => {
         transform: [{ translateY: translateY.value }],
     }));
 
-    const animatedContainerStyle = useAnimatedStyle(() => {
-        const keyboardHeight = height.value;
-
-        return {
-            bottom: bottom + keyboardHeight,
-        };
-    });
-
     return (
-        <Animated.View
-            style={[
-                {
-                    position: 'absolute',
-                    alignSelf: 'center',
-                    width: '100%',
-                    zIndex: 9999,
-                },
-                animatedStyle,
-                animatedContainerStyle,
-            ]}
+        <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{
+                position: 'absolute',
+                alignSelf: 'center',
+                width: '100%',
+                zIndex: 9999,
+                bottom: bottom + 20,
+            }}
+            pointerEvents="box-none"
         >
-            <View style={{ paddingHorizontal: 20 }}>
-                <View
-                    style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        padding: 16,
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: '#333',
-                        borderLeftWidth: 3,
-                        borderLeftColor: '#007AFF',
-                        backgroundColor: '#1C1C1E',
-                    }}
-                >
-                    <Text
+            <Animated.View style={[animatedStyle]}>
+                <View style={{ paddingHorizontal: 20 }}>
+                    <View
                         style={{
-                            flex: 1,
-                            fontSize: 15,
-                            color: '#fff',
-                            letterSpacing: 0.2,
-                            ...fonts.fontMedium,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            padding: 16,
+                            borderRadius: 8,
+                            borderWidth: 1,
+                            borderColor: colors.toastBorder,
+                            borderLeftWidth: 3,
+                            borderLeftColor: colors.accent,
+                            backgroundColor: colors.cardBackground,
                         }}
-                        numberOfLines={2}
                     >
-                        {message}
-                    </Text>
+                        <Text
+                            style={{
+                                flex: 1,
+                                fontSize: 15,
+                                color: colors.text,
+                                letterSpacing: 0.2,
+                                ...fonts.fontMedium,
+                            }}
+                            numberOfLines={2}
+                        >
+                            {message}
+                        </Text>
+                    </View>
                 </View>
-            </View>
-        </Animated.View>
+            </Animated.View>
+        </KeyboardAvoidingView>
     );
 };
 
@@ -126,7 +119,7 @@ Toast.show = (props: ToastProps) => {
     if (showToastRef) {
         showToastRef(props);
     } else {
-        console.warn('ToastProvider is not mounted');
+        console.warn('Toast Provider is not mounted');
     }
 };
 

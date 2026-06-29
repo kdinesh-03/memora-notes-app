@@ -7,13 +7,11 @@ import {
     Platform,
     Pressable,
     ScrollView,
-    StyleSheet,
     Text,
     TextInput,
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fonts } from '../../../shared/utils/fonts';
 import { useNoteEditor } from '../hooks/useNoteEditor';
 import { useSpeechToText } from '../hooks/useSpeechToText';
 import Animated, {
@@ -22,12 +20,17 @@ import Animated, {
     withRepeat,
     withTiming,
     Easing,
-} from "react-native-reanimated";
-import * as Haptics from "expo-haptics";
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import Actions from '../components/editor/Actions';
 import ImageCollage from '../components/editor/ImageCollage';
+import PinModal from '../components/shared/PinModal';
+import { hasPin, setupPin } from '../hooks/useLockNote';
+import { useColors } from '@/shared/theme/colors';
+import { styles } from '../styles/NoteEditorScreen.styles';
 
 export const NoteEditorScreen = () => {
+    const colors = useColors();
     const { id } = useLocalSearchParams<{ id?: string }>();
     const {
         title,
@@ -43,6 +46,9 @@ export const NoteEditorScreen = () => {
         loading,
         saving,
         handleSave,
+        isLocked,
+        handleToggleLock,
+        noteId,
     } = useNoteEditor(id);
 
     const { bottom, top } = useSafeAreaInsets();
@@ -53,12 +59,23 @@ export const NoteEditorScreen = () => {
     const [showPicker, setShowPicker] = useState(false);
     const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
 
+    const [pinModalVisible, setPinModalVisible] = useState(false);
+
+    const handleLockPress = async () => {
+        const pinExists = await hasPin(noteId);
+        if (!pinExists) {
+            setPinModalVisible(true);
+        } else {
+            await handleToggleLock();
+        }
+    };
+
     useEffect(() => {
         if (transcript) {
             if (focusedField === 'title') handleTitleChange(transcript);
-            else handleContentChange(transcript)
+            else handleContentChange(transcript);
         }
-    }, [transcript])
+    }, [transcript]);
 
     useEffect(() => {
         if (noteType === 'note') {
@@ -108,31 +125,34 @@ export const NoteEditorScreen = () => {
     const handleNoteType = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         toggleType();
-    }
+    };
 
     if (loading) {
         return (
-            <View style={[styles.container, styles.centered]}>
-                <ActivityIndicator size={20} color="#007AFF" />
+            <View
+                style={[styles.container, styles.centered, { backgroundColor: colors.background }]}
+            >
+                <ActivityIndicator size={20} color={colors.accent} />
             </View>
         );
     }
 
     return (
-        <View style={{ flex: 1, backgroundColor: '#000', paddingTop: top }}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={[
                     styles.container,
-                    { paddingBottom: bottom },
+                    { backgroundColor: colors.background },
+                    { paddingTop: top, paddingBottom: bottom },
                 ]}
                 keyboardShouldPersistTaps="handled"
             >
                 <View style={{ flex: 1 }}>
                     <View style={styles.header}>
                         <Pressable onPress={router.back} style={styles.backButton}>
-                            <ChevronLeft color={'#FFF'} size={28} />
-                            <Text style={[styles.backText, { color: '#FFF' }]}>Back</Text>
+                            <ChevronLeft color={colors.text} size={25} />
+                            <Text style={[styles.backText, { color: colors.text }]}>Back</Text>
                         </Pressable>
                     </View>
 
@@ -140,19 +160,21 @@ export const NoteEditorScreen = () => {
                         handleNoteType={handleNoteType}
                         noteType={noteType}
                         handleImage={(assets) => {
-                            setImages(prev => {
+                            setImages((prev) => {
                                 const newImages = [...prev, ...assets];
                                 return newImages.slice(0, 5);
                             });
                         }}
+                        handleLock={handleLockPress}
+                        isLocked={isLocked}
                     />
 
                     <View style={{ flex: 1, paddingHorizontal: 16 }}>
                         <View style={styles.inputContainer}>
                             <TextInput
                                 placeholder="Title"
-                                placeholderTextColor={'#666'}
-                                style={styles.titleInput}
+                                placeholderTextColor={colors.textTertiary}
+                                style={[styles.titleInput, { color: colors.text }]}
                                 value={title}
                                 onChangeText={handleTitleChange}
                                 multiline
@@ -163,16 +185,28 @@ export const NoteEditorScreen = () => {
                             {focusedField === 'title' && (
                                 <Pressable
                                     onPress={handlePress}
-                                    style={styles.recordingBtn}
+                                    style={[
+                                        styles.recordingBtn,
+                                        { backgroundColor: colors.micIconBg },
+                                    ]}
                                     hitSlop={10}
                                 >
                                     {isRecording && (
-                                        <Animated.View style={[styles.ring, animatedStyle]} />
+                                        <Animated.View
+                                            style={[
+                                                styles.ring,
+                                                animatedStyle,
+                                                {
+                                                    borderTopColor: colors.accent,
+                                                    borderRightColor: colors.accent,
+                                                },
+                                            ]}
+                                        />
                                     )}
                                     {isRecording ? (
-                                        <AudioWaveform color="#007AFF" size={20} />
+                                        <AudioWaveform color={colors.accent} size={20} />
                                     ) : (
-                                        <Mic color="#007AFF" size={20} />
+                                        <Mic color={colors.accent} size={20} />
                                     )}
                                 </Pressable>
                             )}
@@ -181,15 +215,15 @@ export const NoteEditorScreen = () => {
                         <ImageCollage
                             images={images}
                             onRemoveImage={(index) => {
-                                setImages(prev => prev.filter((_, i) => i !== index));
+                                setImages((prev) => prev.filter((_, i) => i !== index));
                             }}
                         />
 
                         <View style={styles.inputContainer}>
                             <TextInput
                                 placeholder="Start writing..."
-                                placeholderTextColor={'#666'}
-                                style={styles.contentInput}
+                                placeholderTextColor={colors.textTertiary}
+                                style={[styles.contentInput, { color: colors.text }]}
                                 value={content}
                                 onChangeText={handleContentChange}
                                 multiline
@@ -200,16 +234,28 @@ export const NoteEditorScreen = () => {
                             {focusedField === 'content' && (
                                 <Pressable
                                     onPress={handlePress}
-                                    style={styles.recordingBtn}
+                                    style={[
+                                        styles.recordingBtn,
+                                        { backgroundColor: colors.micIconBg },
+                                    ]}
                                     hitSlop={10}
                                 >
                                     {isRecording && (
-                                        <Animated.View style={[styles.ring, animatedStyle]} />
+                                        <Animated.View
+                                            style={[
+                                                styles.ring,
+                                                animatedStyle,
+                                                {
+                                                    borderTopColor: colors.accent,
+                                                    borderRightColor: colors.accent,
+                                                },
+                                            ]}
+                                        />
                                     )}
                                     {isRecording ? (
-                                        <AudioWaveform color="#007AFF" size={20} />
+                                        <AudioWaveform color={colors.accent} size={20} />
                                     ) : (
-                                        <Mic color="#007AFF" size={20} />
+                                        <Mic color={colors.accent} size={20} />
                                     )}
                                 </Pressable>
                             )}
@@ -219,18 +265,28 @@ export const NoteEditorScreen = () => {
 
                 <View style={{ paddingHorizontal: 16, gap: 16 }}>
                     {noteType === 'reminder' && (
-                        <View style={styles.reminderSettings}>
+                        <View
+                            style={[
+                                styles.reminderSettings,
+                                { backgroundColor: colors.cardBackground },
+                            ]}
+                        >
                             <View style={styles.reminderRow}>
-                                <Text style={styles.reminderLabel}>Remind At</Text>
+                                <Text style={[styles.reminderLabel, { color: colors.text }]}>
+                                    Remind At
+                                </Text>
                                 <Pressable
                                     onPress={() => {
                                         setPickerMode('date');
                                         setShowPicker(true);
                                     }}
-                                    style={styles.datePickerButton}
+                                    style={[
+                                        styles.datePickerButton,
+                                        { backgroundColor: colors.border },
+                                    ]}
                                 >
-                                    <Calendar size={16} color="#007AFF" />
-                                    <Text style={styles.datePickerText}>
+                                    <Calendar size={16} color={colors.accent} />
+                                    <Text style={[styles.datePickerText, { color: colors.accent }]}>
                                         {formatDateTime(reminderAt)}
                                     </Text>
                                 </Pressable>
@@ -244,7 +300,10 @@ export const NoteEditorScreen = () => {
                                         is24Hour={false}
                                         display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                                         minimumDate={new Date()}
-                                        onValueChange={(event: DateTimePickerChangeEvent, date: Date) => {
+                                        onValueChange={(
+                                            event: DateTimePickerChangeEvent,
+                                            date: Date
+                                        ) => {
                                             const newDate = new Date(reminderAt || Date.now());
                                             if (Platform.OS === 'android') {
                                                 if (pickerMode === 'date') {
@@ -281,15 +340,24 @@ export const NoteEditorScreen = () => {
                                             setShowPicker(false);
                                             setPickerMode('date');
                                         }}
-                                        textColor="#FFF"
-                                        themeVariant="dark"
+                                        textColor={colors.text}
+                                        themeVariant={
+                                            colors.background === '#000000' ? 'dark' : 'light'
+                                        }
                                     />
                                     {Platform.OS === 'ios' && (
                                         <Pressable
                                             onPress={() => setShowPicker(false)}
                                             style={styles.doneButton}
                                         >
-                                            <Text style={styles.doneButtonText}>Done</Text>
+                                            <Text
+                                                style={[
+                                                    styles.doneButtonText,
+                                                    { color: colors.accent },
+                                                ]}
+                                            >
+                                                Done
+                                            </Text>
                                         </Pressable>
                                     )}
                                 </>
@@ -299,161 +367,31 @@ export const NoteEditorScreen = () => {
                     <Pressable
                         onPress={handleSave}
                         disabled={saving}
-                        style={[styles.saveButton, saving && { opacity: 0.7 }]}
+                        style={[
+                            styles.saveButton,
+                            { backgroundColor: colors.saveButtonBg, borderColor: colors.border },
+                            saving && { opacity: 0.7 },
+                        ]}
                     >
                         {saving ? (
-                            <ActivityIndicator size={20} color="#007AFF" />
+                            <ActivityIndicator size={20} color={colors.accent} />
                         ) : (
-                            <Text style={styles.saveText}>Save</Text>
+                            <Text style={[styles.saveText, { color: colors.accent }]}>Save</Text>
                         )}
                     </Pressable>
                 </View>
             </ScrollView>
+
+            <PinModal
+                visible={pinModalVisible}
+                mode="setup"
+                onSuccess={async (pin) => {
+                    await setupPin(noteId, pin);
+                    setPinModalVisible(false);
+                    await handleToggleLock();
+                }}
+                onCancel={() => setPinModalVisible(false)}
+            />
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    container: { flexGrow: 1, backgroundColor: '#000' },
-    centered: { justifyContent: 'center', alignItems: 'center' },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: "space-between",
-        gap: 16,
-        paddingBottom: 20,
-        paddingTop: 5,
-        paddingHorizontal: 16
-    },
-    backButton: { flexDirection: 'row', alignItems: 'center', left: -8 },
-    backText: { fontSize: 18, ...fonts.fontMedium },
-    saveButton: {
-        alignItems: 'center',
-        backgroundColor: '#1c1c1e',
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#333',
-    },
-    saveText: {
-        color: '#007AFF',
-        fontSize: 16,
-        ...fonts.fontSemiBold,
-        letterSpacing: 0.2
-    },
-    reminderSettings: {
-        marginTop: 20,
-        backgroundColor: '#1c1c1e',
-        borderRadius: 12,
-        padding: 16,
-        gap: 8,
-    },
-    reminderRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    inputContainer: {
-        position: "relative",
-        marginTop: 24,
-        display: "flex",
-        justifyContent: "center",
-    },
-    recordingBtn: {
-        backgroundColor: '#1c1c1e',
-        width: 40,
-        height: 40,
-        borderRadius: 50,
-        position: "absolute",
-        right: 0,
-        top: 10,
-        justifyContent: "center",
-        alignItems: "center"
-    },
-    ring: {
-        position: "absolute",
-        width: 40,
-        height: 40,
-        borderRadius: 100,
-        borderWidth: 2,
-        borderTopColor: "#007AFF",
-        borderRightColor: "#007AFF",
-        borderBottomColor: "transparent",
-        borderLeftColor: "transparent",
-    },
-    reminderLabel: {
-        color: '#FFF',
-        fontSize: 16,
-        ...fonts.fontMedium,
-    },
-    titleInput: {
-        fontSize: 32,
-        ...fonts.fontBold,
-        maxHeight: 120,
-        color: '#FFF'
-    },
-    contentInput: {
-        flex: 1,
-        fontSize: 18,
-        lineHeight: 24,
-        ...fonts.fontRegular,
-        color: '#FFF'
-    },
-    datePickerButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#2c2c2e',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 8,
-        gap: 8,
-    },
-    datePickerText: {
-        color: '#007AFF',
-        fontSize: 14,
-        ...fonts.fontMedium,
-    },
-    doneButton: {
-        alignSelf: 'flex-end',
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-    },
-    doneButtonText: {
-        color: '#007AFF',
-        fontSize: 16,
-        ...fonts.fontSemiBold,
-    },
-    repeatRow: {
-        gap: 12,
-        marginTop: 4,
-    },
-    daysContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 4,
-    },
-    dayButton: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: '#2c2c2e',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#333',
-    },
-    dayButtonActive: {
-        backgroundColor: '#007AFF20',
-        borderColor: '#007AFF',
-    },
-    dayText: {
-        color: '#AAA',
-        fontSize: 14,
-        ...fonts.fontMedium,
-    },
-    dayTextActive: {
-        color: '#007AFF',
-        ...fonts.fontSemiBold,
-    },
-});

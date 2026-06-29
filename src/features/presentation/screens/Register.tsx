@@ -1,24 +1,22 @@
 import { useState } from 'react';
-import {
-    ActivityIndicator,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
-import { yupResolver } from "@hookform/resolvers/yup"
-import { Controller, useForm } from 'react-hook-form'
-import { fonts } from '@/shared/utils/fonts';
-import { AuthSchema, authSchema } from '../validations/auth';
+import { Mail, Lock, Eye, EyeOff, ChevronLeft } from 'lucide-react-native';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { Controller, useForm } from 'react-hook-form';
+import { AuthSchema, registerSchema, signinSchema } from '../validations/auth';
+import { useAuth } from '../../../shared/store/useAuth';
+import { Toast } from '@/features/presentation/context/ToastProvider';
+import { router } from 'expo-router';
+import { useColors } from '@/shared/theme/colors';
+import { styles } from '../styles/Register.styles';
 
 export default function Register() {
-    const { bottom } = useSafeAreaInsets();
+    const colors = useColors();
+    const { bottom, top } = useSafeAreaInsets();
     const [isSignUp, setIsSignUp] = useState(false);
+    const { signUp, signIn } = useAuth();
 
     const {
         handleSubmit: handleFormSubmit,
@@ -26,8 +24,8 @@ export default function Register() {
         formState: { errors },
         clearErrors,
     } = useForm({
-        resolver: yupResolver(authSchema),
-    })
+        resolver: yupResolver(isSignUp ? registerSchema : signinSchema),
+    });
 
     const [showPassword, setShowPassword] = useState(false);
 
@@ -45,9 +43,26 @@ export default function Register() {
     const handleSubmit = async (data: AuthSchema) => {
         setLoading(true);
         try {
-            console.log(data)
-        } catch (error) {
-            console.log("Error submitting data : ", error);
+            if (isSignUp) {
+                const result = await signUp(data.email, data.password);
+                if (result.success) {
+                    Toast.show({ message: 'Account created successfully! You can now sign in.' });
+                    router.back();
+                } else {
+                    Toast.show({ message: result.error || 'Sign up failed' });
+                }
+            } else {
+                const result = await signIn(data.email, data.password);
+                if (result.success) {
+                    Toast.show({ message: 'Signed in successfully!' });
+                    router.back();
+                } else {
+                    Toast.show({ message: result.error || 'Sign in failed' });
+                }
+            }
+        } catch (error: any) {
+            console.log('Error submitting data : ', error);
+            Toast.show({ message: error?.message || 'Authentication failed' });
         } finally {
             setLoading(false);
         }
@@ -55,29 +70,38 @@ export default function Register() {
 
     const togglePasswordVisibility = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        setShowPassword(prev => !prev);
+        setShowPassword((prev) => !prev);
     };
 
     const toggleMode = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        setIsSignUp(prev => !prev);
+        setIsSignUp((prev) => !prev);
         clearErrors();
     };
 
     return (
-        <View style={styles.container}>
-            <View style={styles.header} />
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={[styles.scrollContent, { paddingBottom: bottom }]}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    { paddingTop: top, paddingBottom: bottom },
+                ]}
                 keyboardShouldPersistTaps="handled"
             >
+                <View style={styles.header}>
+                    <Pressable onPress={router.back} style={styles.backButton}>
+                        <ChevronLeft color={colors.text} size={25} />
+                        <Text style={[styles.backText, { color: colors.text }]}>Back</Text>
+                    </Pressable>
+                </View>
+
                 <View style={styles.welcomeContainer}>
-                    <Text style={styles.appName}>Memora</Text>
-                    <Text style={styles.title}>
+                    <Text style={[styles.appName, { color: colors.accent }]}>Memora</Text>
+                    <Text style={[styles.title, { color: colors.text }]}>
                         {isSignUp ? 'Create Account' : 'Welcome Back'}
                     </Text>
-                    <Text style={styles.subtitle}>
+                    <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
                         {isSignUp
                             ? 'Join Memora to back up and sync your notes and reminders.'
                             : 'Sign in to access your notes and reminders.'}
@@ -86,33 +110,45 @@ export default function Register() {
 
                 <View style={styles.formContainer}>
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Email Address</Text>
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>
+                            Email Address
+                        </Text>
                         <Controller
-                            name='email'
+                            name="email"
                             control={control}
                             render={({ field: { onChange, value } }) => (
                                 <View
                                     style={[
                                         styles.inputContainer,
-                                        focusedField === 'email' && styles.inputContainerFocused,
-                                        errors.email?.message && styles.inputContainerError,
+                                        {
+                                            backgroundColor: colors.cardBackground,
+                                            borderColor: colors.border,
+                                        },
+                                        focusedField === 'email' && [
+                                            styles.inputContainerFocused,
+                                            { borderColor: colors.accent },
+                                        ],
+                                        errors.email?.message && [
+                                            styles.inputContainerError,
+                                            { borderColor: colors.error },
+                                        ],
                                     ]}
                                 >
                                     <Mail
                                         size={20}
                                         color={
                                             errors.email?.message
-                                                ? '#FF453A'
+                                                ? colors.error
                                                 : focusedField === 'email'
-                                                    ? '#007AFF'
-                                                    : '#666'
+                                                  ? colors.accent
+                                                  : colors.textTertiary
                                         }
                                         style={styles.inputIcon}
                                     />
                                     <TextInput
-                                        style={styles.textInput}
+                                        style={[styles.textInput, { color: colors.text }]}
                                         placeholder="Enter your email"
-                                        placeholderTextColor="#666"
+                                        placeholderTextColor={colors.textTertiary}
                                         value={value}
                                         onChangeText={(text) => {
                                             onChange(text.toLowerCase());
@@ -128,38 +164,54 @@ export default function Register() {
                             )}
                         />
                         {errors.email?.message && (
-                            <Text style={styles.errorText}>*{errors.email.message}</Text>
+                            <Text style={[styles.errorText, { color: colors.error }]}>
+                                *{errors.email.message}
+                            </Text>
                         )}
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Password</Text>
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>
+                            Password
+                        </Text>
                         <Controller
-                            name='password'
+                            name="password"
                             control={control}
                             render={({ field: { onChange, value } }) => (
                                 <View
                                     style={[
                                         styles.inputContainer,
-                                        focusedField === 'password' && styles.inputContainerFocused,
-                                        errors?.password?.message && styles.inputContainerError,
+                                        {
+                                            backgroundColor: colors.cardBackground,
+                                            borderColor: colors.border,
+                                        },
+                                        focusedField === 'password' && [
+                                            styles.inputContainerFocused,
+                                            { borderColor: colors.accent },
+                                        ],
+                                        errors?.password?.message && [
+                                            styles.inputContainerError,
+                                            { borderColor: colors.error },
+                                        ],
                                     ]}
                                 >
                                     <Lock
                                         size={20}
                                         color={
                                             errors.password?.message
-                                                ? '#FF453A'
+                                                ? colors.error
                                                 : focusedField === 'password'
-                                                    ? '#007AFF'
-                                                    : '#666'
+                                                  ? colors.accent
+                                                  : colors.textTertiary
                                         }
                                         style={styles.inputIcon}
                                     />
                                     <TextInput
-                                        style={styles.textInput}
-                                        placeholder={isSignUp ? 'Choose a password' : 'Enter your password'}
-                                        placeholderTextColor="#666"
+                                        style={[styles.textInput, { color: colors.text }]}
+                                        placeholder={
+                                            isSignUp ? 'Choose a password' : 'Enter your password'
+                                        }
+                                        placeholderTextColor={colors.textTertiary}
                                         value={value}
                                         onChangeText={onChange}
                                         onFocus={() => handleFocus('password')}
@@ -174,16 +226,18 @@ export default function Register() {
                                         hitSlop={10}
                                     >
                                         {showPassword ? (
-                                            <EyeOff size={20} color="#8E8E93" />
+                                            <EyeOff size={20} color={colors.textTertiary} />
                                         ) : (
-                                            <Eye size={20} color="#8E8E93" />
+                                            <Eye size={20} color={colors.textTertiary} />
                                         )}
                                     </Pressable>
                                 </View>
                             )}
                         />
                         {errors.password?.message && (
-                            <Text style={styles.errorText}>*{errors.password.message}</Text>
+                            <Text style={[styles.errorText, { color: colors.error }]}>
+                                *{errors.password.message}
+                            </Text>
                         )}
                     </View>
                 </View>
@@ -193,8 +247,9 @@ export default function Register() {
                     disabled={loading}
                     style={({ pressed }) => [
                         styles.submitButton,
+                        { backgroundColor: colors.accent, shadowColor: colors.accent },
                         pressed && !loading && styles.submitButtonPressed,
-                        loading && styles.submitButtonDisabled
+                        loading && styles.submitButtonDisabled,
                     ]}
                 >
                     {loading ? (
@@ -207,11 +262,11 @@ export default function Register() {
                 </Pressable>
 
                 <View style={styles.footer}>
-                    <Text style={styles.footerText}>
+                    <Text style={[styles.footerText, { color: colors.textSecondary }]}>
                         {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
                     </Text>
                     <Pressable hitSlop={10} onPress={toggleMode}>
-                        <Text style={styles.footerLink}>
+                        <Text style={[styles.footerLink, { color: colors.accent }]}>
                             {isSignUp ? 'Sign in' : 'Sign up'}
                         </Text>
                     </Pressable>
@@ -220,142 +275,3 @@ export default function Register() {
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#1C1C1E',
-    },
-    header: {
-        height: 3,
-        width: 40,
-        borderRadius: 4,
-        backgroundColor: '#fff',
-        alignSelf: 'center',
-        marginVertical: 12
-    },
-    scrollContent: {
-        flexGrow: 1,
-        paddingHorizontal: 16,
-        paddingTop: 30,
-    },
-    welcomeContainer: {
-        marginBottom: 32,
-    },
-    appName: {
-        fontSize: 14,
-        color: '#007AFF',
-        ...fonts.fontSemiBold,
-        textTransform: 'uppercase',
-        letterSpacing: 1.5,
-        marginBottom: 8,
-    },
-    title: {
-        fontSize: 32,
-        color: '#FFF',
-        ...fonts.fontBold,
-        marginBottom: 10,
-        letterSpacing: 0.5,
-    },
-    subtitle: {
-        fontSize: 16,
-        color: '#8E8E93',
-        ...fonts.fontRegular,
-        lineHeight: 22,
-    },
-    formContainer: {
-        flex: 1,
-        gap: 20,
-    },
-    inputGroup: {
-        gap: 8,
-    },
-    label: {
-        fontSize: 14,
-        color: '#8E8E93',
-        ...fonts.fontMedium,
-        marginLeft: 4,
-    },
-    inputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#1C1C1E',
-        borderWidth: 1.5,
-        borderColor: '#2C2C2E',
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        height: 56,
-    },
-    inputContainerFocused: {
-        borderColor: '#007AFF',
-        backgroundColor: '#1C1C1E',
-    },
-    inputContainerError: {
-        borderColor: '#FF453A',
-    },
-    inputIcon: {
-        marginRight: 12,
-    },
-    textInput: {
-        flex: 1,
-        color: '#FFF',
-        fontSize: 16,
-        ...fonts.fontRegular,
-        height: '100%',
-    },
-    passwordToggle: {
-        padding: 4,
-    },
-    errorText: {
-        color: '#FF453A',
-        fontSize: 14,
-        ...fonts.fontRegular,
-    },
-    submitButton: {
-        height: 56,
-        borderRadius: 12,
-        backgroundColor: '#007AFF',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 30,
-        marginBottom: 12,
-        shadowColor: '#007AFF',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    submitButtonPressed: {
-        transform: [{ scale: 0.98 }],
-        opacity: 0.9,
-    },
-    submitButtonDisabled: {
-        backgroundColor: '#1C1C1E',
-        shadowOpacity: 0,
-        elevation: 0,
-        borderWidth: 1,
-        borderColor: '#2C2C2E',
-    },
-    submitButtonText: {
-        color: '#FFF',
-        fontSize: 16,
-        ...fonts.fontBold,
-        letterSpacing: 0.3,
-    },
-    footer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingBottom: 10
-    },
-    footerText: {
-        color: '#8E8E93',
-        fontSize: 16,
-        ...fonts.fontRegular,
-    },
-    footerLink: {
-        color: '#007AFF',
-        fontSize: 16,
-        ...fonts.fontSemiBold,
-    },
-});

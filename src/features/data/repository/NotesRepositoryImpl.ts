@@ -8,7 +8,10 @@ import {
     searchNotes,
     updateNote,
     getNotesCounts,
+    toggleNoteLock,
+    getUnsyncedNotes,
 } from '../datasource/notes';
+import { addToSyncQueue } from '../datasource/syncQueue';
 
 export const notesRepository = {
     async getNotes(limit: number, cursor?: number): Promise<Note[]> {
@@ -21,14 +24,29 @@ export const notesRepository = {
     },
 
     async createNote(
+        id: string,
         title: string,
         content: string,
         type: 'note' | 'reminder',
         reminderAt?: number,
         audioUri?: string,
-        images?: ImagePickerAsset[]
+        images?: ImagePickerAsset[],
+        isLocked?: number,
+        userId?: string
     ): Promise<Note> {
-        return await createNote(title, content, type, reminderAt, audioUri, images);
+        const note = await createNote(
+            id,
+            title,
+            content,
+            type,
+            reminderAt,
+            audioUri,
+            images,
+            isLocked,
+            userId
+        );
+        await addToSyncQueue(note.id, 'create');
+        return note;
     },
 
     async updateNote(
@@ -39,20 +57,46 @@ export const notesRepository = {
         reminderAt?: number,
         isPinned?: number,
         audioUri?: string,
-        images?: ImagePickerAsset[]
+        images?: ImagePickerAsset[],
+        isLocked?: number
     ): Promise<Note> {
-        return await updateNote(id, title, content, type, reminderAt, isPinned, audioUri, images);
+        const note = await updateNote(
+            id,
+            title,
+            content,
+            type,
+            reminderAt,
+            isPinned,
+            audioUri,
+            images,
+            isLocked
+        );
+        await addToSyncQueue(note.id, 'update');
+        return note;
     },
 
     async deleteNote(id: string): Promise<void> {
-        return await deleteNote(id);
+        await deleteNote(id);
+        await addToSyncQueue(id, 'delete');
     },
 
     async searchNotes(query: string, limit: number, offset: number): Promise<Note[]> {
         return await searchNotes(query, limit, offset);
     },
 
-    async getNotesCounts(searchQuery?: string): Promise<{ all: number; pinned: number; notes: number; reminders: number }> {
+    async getNotesCounts(
+        searchQuery?: string
+    ): Promise<{ all: number; pinned: number; notes: number; reminders: number }> {
         return await getNotesCounts(searchQuery);
+    },
+
+    async toggleLock(id: string, isLocked: number): Promise<Note> {
+        const note = await toggleNoteLock(id, isLocked);
+        await addToSyncQueue(id, 'update');
+        return note;
+    },
+
+    async getUnsyncedNotes(): Promise<Note[]> {
+        return await getUnsyncedNotes();
     },
 };

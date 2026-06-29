@@ -1,24 +1,32 @@
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import type { ImagePickerAsset } from 'expo-image-picker';
-import { scheduleNoteNotifications, requestNotificationPermissions } from '../../../shared/services/notifications';
+import {
+    scheduleNoteNotifications,
+    requestNotificationPermissions,
+} from '../../../shared/services/notifications';
 import { useStore } from '../../../shared/store/useStore';
 import { createNoteUseCase } from '../../domain/usecases/createNote.usecase';
 import { getNoteByIdUseCase } from '../../domain/usecases/getNoteById.usecase';
 import { updateNoteUseCase } from '../../domain/usecases/updateNote.usecase';
-import { Toast } from '../context/ToastProvider';
+import { toggleLockUseCase } from '../../domain/usecases/toggleLock.usecase';
+import { Toast } from '@/features/presentation/context/ToastProvider';
+import { useAuth } from '../../../shared/store/useAuth';
+import * as Crypto from 'expo-crypto';
 
 export const useNoteEditor = (id?: string) => {
-    const { addNote, updateNote } = useStore();
+    const { addNote, updateNote, toggleNoteLock } = useStore();
+    const { user } = useAuth();
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [noteType, setNoteType] = useState<'note' | 'reminder'>('note');
     const [reminderAt, setReminderAt] = useState<number | undefined>(undefined);
     const [audioUri, setAudioUri] = useState<string | undefined>(undefined);
     const [images, setImages] = useState<ImagePickerAsset[]>([]);
+    const [isLocked, setIsLocked] = useState(false);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-    const noteIdRef = useRef<string | undefined>(id);
+    const noteIdRef = useRef<string>(id || Crypto.randomUUID());
 
     useEffect(() => {
         if (id) {
@@ -31,6 +39,7 @@ export const useNoteEditor = (id?: string) => {
                     setReminderAt(note.reminder_at);
                     setAudioUri(note.audio_uri);
                     setImages(note.images || []);
+                    setIsLocked(note.is_locked === 1);
                 }
                 setLoading(false);
             });
@@ -56,7 +65,7 @@ export const useNoteEditor = (id?: string) => {
                 }
             }
 
-            if (noteIdRef.current) {
+            if (id) {
                 const updated = await updateNoteUseCase(
                     noteIdRef.current,
                     title,
@@ -65,7 +74,8 @@ export const useNoteEditor = (id?: string) => {
                     reminderAt,
                     undefined,
                     audioUri,
-                    images
+                    images,
+                    isLocked ? 1 : 0
                 );
                 updateNote(updated);
                 await scheduleNoteNotifications(updated);
@@ -73,8 +83,17 @@ export const useNoteEditor = (id?: string) => {
                     message: `${noteType === 'note' ? 'Note' : 'Reminder'} updated successfully`,
                 });
             } else {
-                const newNote = await createNoteUseCase(title, content, noteType, reminderAt, audioUri, images);
-                noteIdRef.current = newNote.id;
+                const newNote = await createNoteUseCase(
+                    noteIdRef.current,
+                    title,
+                    content,
+                    noteType,
+                    reminderAt,
+                    audioUri,
+                    images,
+                    isLocked ? 1 : 0,
+                    user?.id
+                );
                 addNote(newNote);
                 await scheduleNoteNotifications(newNote);
                 Toast.show({
@@ -111,6 +130,24 @@ export const useNoteEditor = (id?: string) => {
         });
     };
 
+    const handleToggleLock = async () => {
+        if (id) {
+            try {
+                const nextLocked = isLocked ? 0 : 1;
+                await toggleLockUseCase(noteIdRef.current, nextLocked);
+                toggleNoteLock(noteIdRef.current, nextLocked);
+                setIsLocked(!isLocked);
+                Toast.show({ message: !isLocked ? 'Note locked' : 'Note unlocked' });
+            } catch (error) {
+                console.log('Failed to toggle lock:', error);
+                Toast.show({ message: 'Failed to toggle lock' });
+            }
+        } else {
+            setIsLocked(!isLocked);
+            Toast.show({ message: !isLocked ? 'Note locked' : 'Note unlocked' });
+        }
+    };
+
     return {
         title,
         content,
@@ -120,6 +157,7 @@ export const useNoteEditor = (id?: string) => {
         setAudioUri,
         images,
         setImages,
+        isLocked,
         loading,
         saving,
         handleTitleChange,
@@ -127,5 +165,7 @@ export const useNoteEditor = (id?: string) => {
         toggleType,
         setReminderAt,
         handleSave,
+        handleToggleLock,
+        noteId: noteIdRef.current,
     };
 };

@@ -1,8 +1,5 @@
 import { useState } from 'react';
-import {
-    ExpoSpeechRecognitionModule,
-    useSpeechRecognitionEvent,
-} from 'expo-speech-recognition';
+import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 
 export const useSpeechToText = () => {
     const [isRecording, setIsRecording] = useState(false);
@@ -17,15 +14,12 @@ export const useSpeechToText = () => {
     });
 
     useSpeechRecognitionEvent('result', (event) => {
-        if (!event.results?.length) return;
+        const result = event.results?.[0];
+        if (!result?.transcript) return;
 
-        const text = event.results[0]?.transcript ?? '';
+        const { transcript } = result;
 
-        if (event.isFinal) {
-            setTranscript('');
-        } else {
-            setTranscript(text);
-        }
+        setTranscript((prev) => (event.isFinal ? '' : prev + transcript));
     });
 
     useSpeechRecognitionEvent('error', (event) => {
@@ -34,8 +28,7 @@ export const useSpeechToText = () => {
     });
 
     const start = async () => {
-        const permission =
-            await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+        const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
 
         if (!permission.granted) {
             console.warn('Permission not granted');

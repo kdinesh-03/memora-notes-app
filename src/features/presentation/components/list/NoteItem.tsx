@@ -1,8 +1,9 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Bell, Pin, StickyNote } from 'lucide-react-native';
+import { Bell, Lock, Pin, StickyNote } from 'lucide-react-native';
 import { fonts } from '../../../../shared/utils/fonts';
 import { Note } from '../../../domain/entities/Note';
+import { useColors } from '@/shared/theme/colors';
 
 const formatUpcomingTime = (timestamp?: number) => {
     if (!timestamp) return '';
@@ -30,10 +31,25 @@ const formatUpcomingTime = (timestamp?: number) => {
         return `Tomorrow, ${formatTime()}`;
     }
 
-    return date.toLocaleDateString([], {
-        month: 'short',
-        day: 'numeric',
-    }) + `, ${formatTime()}`;
+    return (
+        date.toLocaleDateString([], {
+            month: 'short',
+            day: 'numeric',
+        }) + `, ${formatTime()}`
+    );
+};
+
+const getSyncDotColor = (syncStatus?: string) => {
+    switch (syncStatus) {
+        case 'synced':
+            return '#30D158';
+        case 'pending':
+            return '#FF9F0A';
+        case 'failed':
+            return '#FF453A';
+        default:
+            return '#48484A';
+    }
 };
 
 interface NoteItemProps {
@@ -44,95 +60,113 @@ interface NoteItemProps {
     isActive?: boolean;
 }
 
-export const NoteItem = memo(({ note, onPress, onTogglePin, onLongPress, isActive }: NoteItemProps) => {
-    const isUpcoming =
-        note.type === 'reminder' && note.reminder_at && note.reminder_at > Date.now();
+export const NoteItem = memo(
+    ({ note, onPress, onTogglePin, onLongPress, isActive }: NoteItemProps) => {
+        const colors = useColors();
+        const isUpcoming =
+            note.type === 'reminder' && note.reminder_at && note.reminder_at > Date.now();
+        const isLocked = note.is_locked === 1;
 
-    return (
-        <Pressable
-            onPress={() => onPress(note.id)}
-            onLongPress={onLongPress}
-            delayLongPress={200}
-            disabled={isActive}
-            style={[styles.noteCard, isActive && styles.activeCard]}
-        >
-            <View style={styles.titleContainer}>
-                <View style={{ flex: 1, marginRight: 8 }}>
-                    <Text style={styles.noteTitle} numberOfLines={1}>
+        return (
+            <Pressable
+                onPress={() => onPress(note.id)}
+                onLongPress={onLongPress}
+                delayLongPress={200}
+                disabled={isActive}
+                style={[
+                    styles.noteCard,
+                    {
+                        backgroundColor: colors.cardBackground,
+                        borderColor: colors.border,
+                        borderWidth: 1,
+                    },
+                    // isActive && styles.activeCard
+                ]}
+            >
+                <View style={styles.titleContainer}>
+                    <Text style={[styles.noteTitle, { color: colors.text }]} numberOfLines={1}>
                         {note.title || 'Untitled'}
                     </Text>
+                    <Pressable
+                        onPress={() => onTogglePin(note)}
+                        hitSlop={10}
+                        style={styles.pinButton}
+                    >
+                        <Pin
+                            size={17}
+                            color={note.is_pinned === 1 ? colors.accent : colors.textTertiary}
+                            fill={note.is_pinned === 1 ? colors.accent : 'transparent'}
+                        />
+                    </Pressable>
                 </View>
-                <Pressable onPress={() => onTogglePin(note)} hitSlop={10} style={styles.pinButton}>
-                    <Pin
-                        size={17}
-                        color={note.is_pinned === 1 ? '#007AFF' : '#666'}
-                        fill={note.is_pinned === 1 ? '#007AFF' : 'transparent'}
-                    />
-                </Pressable>
-            </View>
 
-            <Text style={styles.noteSnippet} numberOfLines={2}>
-                {note.content || 'No content'}
-            </Text>
+                <Text
+                    style={[styles.noteSnippet, { color: colors.textSecondary }]}
+                    numberOfLines={2}
+                >
+                    {isLocked ? '🔒 This note is locked' : note.content || 'No content'}
+                </Text>
 
-            <View style={styles.footer}>
-                <View style={styles.footerLeft}>
-                    {note.type === 'reminder' ? (
-                        <View
-                            style={[
-                                styles.timeBadge,
-                                isUpcoming
-                                    ? styles.upcomingTimeBadge
-                                    : styles.expiredTimeBadge,
-                            ]}
-                        >
-                            <Bell
-                                size={12}
-                                color={isUpcoming ? '#FFD60A' : '#8E8E93'}
-                                fill={isUpcoming ? '#FFD60A' : 'transparent'}
-                            />
-                            <Text
+                <View style={styles.footer}>
+                    <View style={styles.footerLeft}>
+                        {note.type === 'reminder' ? (
+                            <View
                                 style={[
-                                    styles.timeBadgeText,
-                                    {
-                                        color: isUpcoming
-                                            ? '#FFD60A'
-                                            : '#8E8E93',
-                                    },
+                                    styles.timeBadge,
+                                    isUpcoming
+                                        ? styles.upcomingTimeBadge
+                                        : [
+                                              styles.expiredTimeBadge,
+                                              { backgroundColor: colors.tabCountBadge },
+                                          ],
                                 ]}
                             >
-                                {formatUpcomingTime(note.reminder_at)}
+                                <Bell
+                                    size={12}
+                                    color={isUpcoming ? '#FFD60A' : colors.textTertiary}
+                                    fill={isUpcoming ? '#FFD60A' : 'transparent'}
+                                />
+                                <Text
+                                    style={[
+                                        styles.timeBadgeText,
+                                        {
+                                            color: isUpcoming ? '#FFD60A' : colors.textSecondary,
+                                        },
+                                    ]}
+                                >
+                                    {formatUpcomingTime(note.reminder_at)}
+                                </Text>
+                            </View>
+                        ) : (
+                            <Text style={[styles.noteDate, { color: colors.textTertiary }]}>
+                                {new Date(note.updated_at).toLocaleDateString()}
                             </Text>
-                        </View>
-                    ) : (
-                        <Text style={styles.noteDate}>
-                            {new Date(note.updated_at).toLocaleDateString()}
-                        </Text>
-                    )}
+                        )}
+                    </View>
+                    {/* Sync status dot */}
+                    <View
+                        style={[
+                            styles.syncDot,
+                            { backgroundColor: getSyncDotColor(note.sync_status) },
+                        ]}
+                    />
                 </View>
-            </View>
-        </Pressable>
-    );
-});
+            </Pressable>
+        );
+    }
+);
 
 const styles = StyleSheet.create({
     noteCard: {
         padding: 16,
         borderRadius: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
+        boxShadow: '0px 1px 3px 0px rgba(0,0,0,0.1)',
         marginBottom: 12,
         gap: 2,
         backgroundColor: '#1c1c1e',
     },
     activeCard: {
         opacity: 0.9,
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
         borderColor: '#007AFF',
         borderWidth: 1,
     },
@@ -141,6 +175,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 4,
+        gap: 6,
     },
     noteTitle: { flex: 1, fontSize: 18, ...fonts.fontSemiBold, color: '#fff' },
     pinButton: {
@@ -153,6 +188,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     footerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+    syncDot: {
+        width: 7,
+        height: 7,
+        borderRadius: 4,
+    },
     typeBadge: {
         flexDirection: 'row',
         alignItems: 'center',

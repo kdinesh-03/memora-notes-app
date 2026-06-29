@@ -21,7 +21,13 @@ interface AppState {
     reorderNotes: (notes: Note[]) => void;
     setLoading: (loading: boolean) => void;
     setHasMore: (hasMore: boolean) => void;
-    setTabCounts: (counts: { all: number; pinned: number; notes: number; reminders: number }) => void;
+    setTabCounts: (counts: {
+        all: number;
+        pinned: number;
+        notes: number;
+        reminders: number;
+    }) => void;
+    toggleNoteLock: (id: string, isLocked: number) => void;
 }
 
 const sortNotes = (a: Note, b: Note) => {
@@ -61,4 +67,12 @@ export const useStore = create<AppState>((set) => ({
     setLoading: (loading) => set({ loading }),
     setHasMore: (hasMore) => set({ hasMore }),
     setTabCounts: (counts) => set({ tabCounts: counts }),
+    toggleNoteLock: (id, isLocked) =>
+        set((state) => ({
+            notes: state.notes
+                .map((n) =>
+                    n.id === id ? { ...n, is_locked: isLocked, updated_at: Date.now() } : n
+                )
+                .sort(sortNotes),
+        })),
 }));

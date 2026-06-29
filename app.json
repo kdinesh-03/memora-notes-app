@@ -1,111 +1,101 @@
 {
-  "expo": {
-    "name": "Memora",
-    "slug": "memora",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./src/assets/images/icon.png",
-    "scheme": "memora",
-    "userInterfaceStyle": "dark",
-    "ios": {
-      "icon": "./src/assets/images/icon.png",
-      "bundleIdentifier": "com.memora.app"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#000000",
-        "foregroundImage": "./src/assets/images/icon.png",
-        "backgroundImage": "./src/assets/images/icon.png",
-        "monochromeImage": "./src/assets/images/icon.png"
-      },
-      "predictiveBackGestureEnabled": false,
-      "package": "com.memora.app"
-    },
-    "web": {
-      "output": "static",
-      "favicon": "./src/assets/images/favicon.png"
-    },
-    "plugins": [
-      "expo-router",
-      "expo-sqlite",
-      "expo-image",
-      "expo-web-browser",
-      "@react-native-community/datetimepicker",
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#000000",
-          "resizeMode": "cover",
-          "android": {
-            "image": "./src/assets/images/splashicon.png",
-            "imageWidth": 200
-          }
+    "expo": {
+        "name": "Memora",
+        "slug": "memora",
+        "version": "1.0.2",
+        "orientation": "portrait",
+        "icon": "./src/assets/images/icon.png",
+        "scheme": "memora",
+        "userInterfaceStyle": "automatic",
+        "ios": {
+            "icon": "./src/assets/images/icon.png",
+            "bundleIdentifier": "com.memora.app"
+        },
+        "android": {
+            "adaptiveIcon": {
+                "backgroundColor": "#000000",
+                "foregroundImage": "./src/assets/images/icon.png",
+                "backgroundImage": "./src/assets/images/icon.png",
+                "monochromeImage": "./src/assets/images/icon.png"
+            },
+            "predictiveBackGestureEnabled": false,
+            "package": "com.memora.app"
+        },
+        "web": {
+            "output": "static",
+            "favicon": "./src/assets/images/favicon.png"
+        },
+        "plugins": [
+            "expo-router",
+            "expo-sqlite",
+            "expo-image",
+            "expo-web-browser",
+            "@react-native-community/datetimepicker",
+            [
+                "expo-splash-screen",
+                {
+                    "backgroundColor": "#ffffff",
+                    "resizeMode": "cover",
+                    "imageWidth": 200,
+                    "image": "./src/assets/images/splashicon-light.png",
+                    "dark": {
+                        "image": "./src/assets/images/splashicon-dark.png",
+                        "backgroundColor": "#000000"
+                    }
+                }
+            ],
+            [
+                "expo-font",
+                {
+                    "fonts": ["./src/assets/fonts"]
+                }
+            ],
+            [
+                "expo-notifications",
+                {
+                    "icon": "./src/assets/images/notification.png",
+                    "color": "#ffffff",
+                    "defaultChannel": "default",
+                    "sounds": ["./src/assets/sounds/notification.wav"],
+                    "enableBackgroundRemoteNotifications": false
+                }
+            ],
+            [
+                "expo-speech-recognition",
+                {
+                    "microphonePermission": "Allow $(PRODUCT_NAME) to use the microphone.",
+                    "speechRecognitionPermission": "Allow $(PRODUCT_NAME) to use speech recognition.",
+                    "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+                }
+            ],
+            [
+                "expo-audio",
+                {
+                    "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone.",
+                    "enableBackgroundPlayback": true,
+                    "enableBackgroundRecording": false
+                }
+            ],
+            [
+                "expo-image-picker",
+                {
+                    "photosPermission": "The app accesses your photos to let you share them with your friends.",
+                    "colors": {
+                        "cropToolbarColor": "#000000"
+                    },
+                    "dark": {
+                        "colors": {
+                            "cropToolbarColor": "#000000"
+                        }
+                    }
+                }
+            ],
+            "expo-status-bar",
+            "expo-secure-store"
+        ],
+        "experiments": {
+            "typedRoutes": true,
+            "reactCompiler": true
         }
-      ],
-      [
-        "expo-font",
-        {
-          "fonts": [
-            "./src/assets/fonts"
-          ]
-        }
-      ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./src/assets/images/notification.png",
-          "color": "#ffffff",
-          "defaultChannel": "default",
-          "sounds": [
-            "./src/assets/sounds/notification.wav"
-          ],
-          "enableBackgroundRemoteNotifications": false
-        }
-      ],
-      [
-        "expo-speech-recognition",
-        {
-          "microphonePermission": "Allow $(PRODUCT_NAME) to use the microphone.",
-          "speechRecognitionPermission": "Allow $(PRODUCT_NAME) to use speech recognition.",
-          "androidSpeechServicePackages": [
-            "com.google.android.googlequicksearchbox"
-          ]
-        }
-      ],
-      [
-        "expo-audio",
-        {
-          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone.",
-          "enableBackgroundPlayback": true,
-          "enableBackgroundRecording": false
-        }
-      ],
-      [
-        "expo-video",
-        {
-          "supportsBackgroundPlayback": true,
-          "supportsPictureInPicture": true
-        }
-      ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "The app accesses your photos to let you share them with your friends.",
-          "colors": {
-            "cropToolbarColor": "#000000"
-          },
-          "dark": {
-            "colors": {
-              "cropToolbarColor": "#000000"
-            }
-          }
-        }
-      ],
-      "expo-status-bar"
-    ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
     }
-  }
 }

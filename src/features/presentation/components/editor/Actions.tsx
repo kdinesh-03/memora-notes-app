@@ -1,42 +1,24 @@
 import { fonts } from '@/shared/utils/fonts';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
-import { Mic, Image, Lock } from 'lucide-react-native';
+import { Mic, Image, Lock, Unlock } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { ImagePickerAsset } from 'expo-image-picker';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
-
-const features = [
-    {
-        id: 'record-voice-note',
-        name: 'Record Voice Note',
-        icon: <Mic size={18} color={'#AAA'} />,
-        type: 'note-reminder',
-    },
-    {
-        id: 'add-image',
-        name: 'Add Image',
-        icon: <Image size={18} color={'#AAA'} />,
-        type: 'note-reminder'
-    },
-    {
-        id: 'lock-note',
-        name: 'Lock Note',
-        icon: <Lock size={17} color={'#AAA'} />,
-        type: 'note'
-    },
-];
-
-interface ActionProps {
-    handleNoteType: () => void;
-    noteType: 'note' | 'reminder';
-    handleImage: (uri: ImagePickerAsset[]) => void;
-}
+import { useColors } from '@/shared/theme/colors';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-const PressableScale = ({ children, onPress, style }: { children: React.ReactNode, onPress: () => void, style?: any }) => {
+const PressableScale = ({
+    children,
+    onPress,
+    style,
+}: {
+    children: React.ReactNode;
+    onPress: () => void;
+    style?: any;
+}) => {
     const scale = useSharedValue(1);
 
     const animatedStyle = useAnimatedStyle(() => ({
@@ -59,19 +41,20 @@ const PressableScale = ({ children, onPress, style }: { children: React.ReactNod
     );
 };
 
-const Actions = ({ handleNoteType, noteType, handleImage }: ActionProps) => {
+interface ActionProps {
+    handleNoteType: () => void;
+    noteType: 'note' | 'reminder';
+    handleImage: (uri: ImagePickerAsset[]) => void;
+    handleLock?: () => void;
+    isLocked?: boolean;
+}
 
-    const filteredActions = useMemo(() => {
-        if (noteType === 'note') {
-            return features.filter((feature) => feature.type === 'note' || feature.type === 'note-reminder')
-        } else {
-            return features.filter((feature) => feature.type === 'reminder' || feature.type === 'note-reminder')
-        }
-    }, [noteType])
+const Actions = ({ handleNoteType, noteType, handleImage, handleLock, isLocked }: ActionProps) => {
+    const colors = useColors();
 
     const handleImagePicker = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: "images",
+            mediaTypes: 'images',
             allowsMultipleSelection: true,
             selectionLimit: 5,
             orderedSelection: true,
@@ -89,8 +72,11 @@ const Actions = ({ handleNoteType, noteType, handleImage }: ActionProps) => {
             case 'add-image':
                 handleImagePicker();
                 break;
+            case 'lock-note':
+                handleLock?.();
+                break;
         }
-    }
+    };
 
     return (
         <View>
@@ -98,7 +84,7 @@ const Actions = ({ handleNoteType, noteType, handleImage }: ActionProps) => {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{
-                    alignItems: "center",
+                    alignItems: 'center',
                     gap: 6,
                     paddingHorizontal: 16,
                 }}
@@ -106,44 +92,93 @@ const Actions = ({ handleNoteType, noteType, handleImage }: ActionProps) => {
                 <PressableScale
                     style={[
                         styles.actionButton,
-                        { borderWidth: 1, borderColor: "#007AFF" }
+                        {
+                            borderWidth: 1,
+                            borderColor: colors.accent,
+                            backgroundColor: colors.cardBackground,
+                        },
                     ]}
                     onPress={handleNoteType}
                 >
-                    <Text style={[styles.actionButtonText, { letterSpacing: 0.2, color: "#007AFF" }]}>
+                    <Text
+                        style={[
+                            styles.actionButtonText,
+                            { letterSpacing: 0.2, color: colors.accent },
+                        ]}
+                    >
                         {noteType === 'reminder' ? 'Reminder' : 'Note'}
                     </Text>
                 </PressableScale>
-                <View style={styles.verticalLine} />
-                {filteredActions.map((action) => (
-                    <PressableScale
-                        key={action.id}
-                        style={styles.actionButton}
-                        onPress={() => handleAction(action.id)}
+                <View style={[styles.verticalLine, { backgroundColor: colors.border }]} />
+
+                {/* Record Voice Note */}
+                <PressableScale
+                    style={[
+                        styles.actionButton,
+                        { backgroundColor: colors.cardBackground, borderColor: colors.border },
+                    ]}
+                    onPress={() => handleAction('record-voice-note')}
+                >
+                    <Mic size={18} color={colors.textSecondary} />
+                    <Text style={[styles.actionButtonText, { color: colors.textSecondary }]}>
+                        Record Voice Note
+                    </Text>
+                </PressableScale>
+
+                {/* Add Image */}
+                <PressableScale
+                    style={[
+                        styles.actionButton,
+                        { backgroundColor: colors.cardBackground, borderColor: colors.border },
+                    ]}
+                    onPress={() => handleAction('add-image')}
+                >
+                    <Image size={18} color={colors.textSecondary} />
+                    <Text style={[styles.actionButtonText, { color: colors.textSecondary }]}>
+                        Add Image
+                    </Text>
+                </PressableScale>
+
+                {/* Lock Note */}
+                <PressableScale
+                    style={[
+                        styles.actionButton,
+                        { backgroundColor: colors.cardBackground, borderColor: colors.border },
+                        isLocked && {
+                            borderColor: colors.accent,
+                            backgroundColor: colors.accentLight,
+                        },
+                    ]}
+                    onPress={() => handleAction('lock-note')}
+                >
+                    {isLocked ? (
+                        <Unlock size={17} color={colors.accent} />
+                    ) : (
+                        <Lock size={17} color={colors.textSecondary} />
+                    )}
+                    <Text
+                        style={[
+                            styles.actionButtonText,
+                            { color: colors.textSecondary },
+                            isLocked && { color: colors.accent },
+                        ]}
                     >
-                        {action.icon}
-                        <Text
-                            style={[
-                                styles.actionButtonText,
-                            ]}
-                        >
-                            {action.name}
-                        </Text>
-                    </PressableScale>
-                ))}
+                        {isLocked ? 'Unlock Note' : 'Lock Note'}
+                    </Text>
+                </PressableScale>
             </ScrollView>
         </View>
-    )
-}
+    );
+};
 
-export default Actions
+export default Actions;
 
 const styles = StyleSheet.create({
     verticalLine: {
-        height: "80%",
+        height: '80%',
         width: 1,
         backgroundColor: '#333',
-        marginHorizontal: 3
+        marginHorizontal: 3,
     },
     actionButton: {
         backgroundColor: '#1c1c1e',
@@ -151,10 +186,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 6,
         paddingHorizontal: 12,
-        paddingVertical: 8,
+        paddingVertical: 6,
         borderRadius: 20,
         borderWidth: 1,
         borderColor: '#333',
+    },
+    actionButtonActive: {
+        borderColor: '#007AFF',
+        backgroundColor: '#007AFF15',
     },
     actionButtonText: {
         color: '#AAA',

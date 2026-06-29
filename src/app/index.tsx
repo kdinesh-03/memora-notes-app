@@ -1,11 +1,14 @@
 import { Platform } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { NotesListScreen } from '../features/presentation/screens/NotesListScreen';
+import { NotesListScreen } from '@/features/presentation/screens';
+import { useColors } from '@/shared/theme/colors';
 
 export default function Index() {
+    const colors = useColors();
+
     return (
         <KeyboardAvoidingView
-            style={{ flex: 1, backgroundColor: '#000' }}
+            style={{ flex: 1, backgroundColor: colors.background }}
             behavior={Platform.OS === 'ios' ? 'height' : 'padding'}
         >
             <NotesListScreen />

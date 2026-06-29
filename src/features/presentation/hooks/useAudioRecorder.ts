@@ -4,8 +4,8 @@ import {
     RecordingPresets,
     AudioModule,
     setAudioModeAsync,
-} from "expo-audio";
-import { useEffect } from "react";
+} from 'expo-audio';
+import { useEffect } from 'react';
 
 export const useAudioRecorderHook = () => {
     const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
@@ -16,7 +16,7 @@ export const useAudioRecorderHook = () => {
             const permission = await AudioModule.requestRecordingPermissionsAsync();
 
             if (!permission.granted) {
-                console.log("Mic permission denied");
+                console.log('Mic permission denied');
                 return;
             }
 

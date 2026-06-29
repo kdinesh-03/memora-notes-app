@@ -5,9 +5,12 @@ import { deleteNoteUseCase } from '../../domain/usecases/deleteNote.usecase';
 import { getNotesUseCase } from '../../domain/usecases/getNotes.usecase';
 import { searchNotesUseCase } from '../../domain/usecases/searchNotes.usecase';
 import { updateNoteUseCase } from '../../domain/usecases/updateNote.usecase';
+import { toggleLockUseCase } from '../../domain/usecases/toggleLock.usecase';
 
 import { cancelNoteNotifications } from '../../../shared/services/notifications';
-import { Toast } from '../context/ToastProvider';
+import { Toast } from '@/features/presentation/context/ToastProvider';
+import { useAuth } from '../../../shared/store/useAuth';
+import { useSync } from '../../../shared/store/useSync';
 
 const PAGE_SIZE = 20;
 
@@ -23,7 +26,11 @@ export const useNotes = () => {
         setHasMore,
         removeNote,
         updateNote,
+        toggleNoteLock,
     } = useStore();
+
+    const { isAuthenticated, user } = useAuth();
+    const { triggerSync, syncStatus } = useSync();
 
     const searchPageRef = useRef(0);
 
@@ -72,15 +79,7 @@ export const useNotes = () => {
                 setLoading(false);
             }
         },
-        [
-            notes.length,
-            searchQuery,
-            loading,
-            appendNotes,
-            setNotes,
-            setLoading,
-            setHasMore,
-        ]
+        [notes.length, searchQuery, loading, appendNotes, setNotes, setLoading, setHasMore]
     );
 
     const onLoadMore = () => {
@@ -124,10 +123,44 @@ export const useNotes = () => {
         }
     };
 
+    const handleToggleLock = async (note: Note) => {
+        try {
+            const nextLocked = (note.is_locked ?? 0) === 1 ? 0 : 1;
+            const updatedNote = await toggleLockUseCase(note.id, nextLocked);
+            toggleNoteLock(note.id, nextLocked);
+            Toast.show({
+                message: nextLocked === 1 ? 'Note locked' : 'Note unlocked',
+            });
+            return updatedNote;
+        } catch (error) {
+            console.log('Failed to toggle lock:', error);
+            Toast.show({ message: 'Failed to toggle lock' });
+            return null;
+        }
+    };
+
+    // Trigger background sync if authenticated
+    const handleSync = useCallback(async () => {
+        if (isAuthenticated && user?.id && syncStatus !== 'syncing') {
+            try {
+                await triggerSync(user.id);
+                // Refresh notes after sync
+                await fetchNotes(false);
+            } catch (error) {
+                console.log('Background sync failed:', error);
+            }
+        }
+    }, [isAuthenticated, user?.id, syncStatus, triggerSync, fetchNotes]);
+
     useEffect(() => {
         searchPageRef.current = 0;
         fetchNotes(false);
     }, [searchQuery]);
+
+    // Trigger sync on mount if authenticated
+    useEffect(() => {
+        handleSync();
+    }, [isAuthenticated]);
 
     return {
         notes,
@@ -135,5 +168,8 @@ export const useNotes = () => {
         onLoadMore,
         handleDelete,
         handleTogglePin,
+        handleToggleLock,
+        handleSync,
+        syncStatus,
     };
 };

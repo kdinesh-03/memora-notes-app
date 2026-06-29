@@ -1,28 +1,22 @@
 import { router } from 'expo-router';
 import debounce from 'lodash.debounce';
-import { Plus, Search, X } from 'lucide-react-native';
+import { Plus, Search, X, RefreshCw, CloudOff, Check, TextAlignJustify } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-    Button,
-    Dimensions,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
-} from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { TabView, TabBar, SceneRendererProps, NavigationState } from 'react-native-tab-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../../../shared/store/useStore';
-import { fonts } from '../../../shared/utils/fonts';
 import { useNotes } from '../hooks/useNotes';
 import { NotesTab } from '../components/list/NotesTab';
 import { Note } from '../../domain/entities/Note';
 import { getNotesCountsUseCase } from '../../domain/usecases/getNotesCounts.usecase';
-
-const TAB_BAR_HEIGHT = 44;
-const WINDOW_WIDTH = Dimensions.get('window').width;
+import { useAuth } from '../../../shared/store/useAuth';
+import { hasPin, verifyPin } from '../hooks/useLockNote';
+import PinModal from '../components/shared/PinModal';
+import { Toast } from '@/features/presentation/context/ToastProvider';
+import { useColors } from '@/shared/theme/colors';
+import { styles, WINDOW_WIDTH } from '../styles/NotesListScreen.styles';
 
 type TabRoute = {
     key: string;
@@ -34,14 +28,47 @@ const ROUTES: TabRoute[] = [
     { key: 'pinned', title: 'Pinned' },
     { key: 'notes', title: 'Notes' },
     { key: 'reminders', title: 'Reminders' },
+    { key: 'locked', title: 'Locked' },
 ];
 
+const SyncIndicator = ({ status }: { status: string }) => {
+    switch (status) {
+        case 'syncing':
+            return (
+                <View style={styles.syncBadge}>
+                    <RefreshCw size={12} color="#FF9F0A" />
+                    <Text style={[styles.syncBadgeText, { color: '#FF9F0A' }]}>Syncing</Text>
+                </View>
+            );
+        case 'synced':
+            return (
+                <View style={styles.syncBadge}>
+                    <Check size={12} color="#30D158" />
+                    <Text style={[styles.syncBadgeText, { color: '#30D158' }]}>Synced</Text>
+                </View>
+            );
+        case 'failed':
+            return (
+                <View style={styles.syncBadge}>
+                    <CloudOff size={12} color="#FF453A" />
+                    <Text style={[styles.syncBadgeText, { color: '#FF453A' }]}>Failed</Text>
+                </View>
+            );
+        default:
+            return null;
+    }
+};
+
 export const NotesListScreen = () => {
-    const { notes, loading, handleDelete, handleTogglePin } = useNotes();
+    const { notes, loading, handleDelete, handleTogglePin, syncStatus } = useNotes();
     const { searchQuery, setSearchQuery, tabCounts, setTabCounts } = useStore();
+    const { isAuthenticated } = useAuth();
     const [localSearch, setLocalSearch] = useState(searchQuery);
     const { top, bottom } = useSafeAreaInsets();
     const [tabIndex, setTabIndex] = useState(0);
+
+    const [pinModalVisible, setPinModalVisible] = useState(false);
+    const [pendingNoteId, setPendingNoteId] = useState<string | null>(null);
 
     const debouncedSearch = useMemo(
         () =>
@@ -80,15 +107,34 @@ export const NotesListScreen = () => {
             .catch((err) => console.log('Failed to sync tab counts:', err));
     }, [notes, searchQuery, setTabCounts]);
 
+    const handleNotePress = useCallback(
+        async (noteId: string) => {
+            const note = notes.find((n) => n.id === noteId);
+            if (note?.is_locked === 1) {
+                const pinExists = await hasPin(noteId);
+                if (pinExists) {
+                    setPendingNoteId(noteId);
+                    setPinModalVisible(true);
+                } else {
+                    Toast.show({ message: 'No PIN set for this note' });
+                }
+            } else {
+                router.push({ pathname: '/editor', params: { id: noteId } });
+            }
+        },
+        [notes]
+    );
+
     const renderScene = useCallback(
         ({ route }: SceneRendererProps & { route: TabRoute }) => {
             const tabNotes = isSearching
                 ? notes.filter((n) => {
-                    if (route.key === 'pinned') return n.is_pinned === 1;
-                    if (route.key === 'notes') return n.type === 'note';
-                    if (route.key === 'reminders') return n.type === 'reminder';
-                    return true;
-                })
+                      if (route.key === 'pinned') return n.is_pinned === 1;
+                      if (route.key === 'notes') return n.type === 'note';
+                      if (route.key === 'reminders') return n.type === 'reminder';
+                      if (route.key === 'locked') return n.is_locked === 1;
+                      return true;
+                  })
                 : filteredNotes[route.key] || [];
 
             return (
@@ -97,18 +143,15 @@ export const NotesListScreen = () => {
                     loading={loading}
                     onDelete={handleDelete}
                     onTogglePin={handleTogglePin}
+                    onNotePress={handleNotePress}
+                    activeTab={route.key}
                 />
             );
         },
-        [
-            filteredNotes,
-            loading,
-            handleDelete,
-            handleTogglePin,
-            isSearching,
-            notes,
-        ]
+        [filteredNotes, loading, handleDelete, handleTogglePin, handleNotePress, isSearching, notes]
     );
+
+    const colors = useColors();
 
     const renderTabLabel = useCallback(
         (key: string, title: string, focused: boolean) => {
@@ -120,7 +163,8 @@ export const NotesListScreen = () => {
                         ellipsizeMode="tail"
                         style={[
                             styles.tabLabelText,
-                            focused && styles.tabLabelTextActive,
+                            { color: colors.textSecondary },
+                            focused && [styles.tabLabelTextActive, { color: colors.text }],
                         ]}
                     >
                         {title}
@@ -128,13 +172,18 @@ export const NotesListScreen = () => {
                     <View
                         style={[
                             styles.tabCountBadge,
-                            focused && styles.tabCountBadgeActive,
+                            { backgroundColor: colors.tabCountBadge },
+                            focused && [
+                                styles.tabCountBadgeActive,
+                                { backgroundColor: colors.tabCountBadgeActive },
+                            ],
                         ]}
                     >
                         <Text
                             style={[
                                 styles.tabCountText,
-                                focused && styles.tabCountTextActive,
+                                { color: colors.textSecondary },
+                                focused && [styles.tabCountTextActive, { color: colors.accent }],
                             ]}
                         >
                             {count}
@@ -143,7 +192,7 @@ export const NotesListScreen = () => {
                 </View>
             );
         },
-        [tabCounts]
+        [tabCounts, colors]
     );
 
     const renderTabBar = useCallback(
@@ -155,8 +204,11 @@ export const NotesListScreen = () => {
             <TabBar
                 {...props}
                 scrollEnabled={true}
-                style={styles.tabBar}
-                indicatorStyle={styles.tabIndicator}
+                style={[
+                    styles.tabBar,
+                    { backgroundColor: colors.background, borderBottomColor: colors.border },
+                ]}
+                indicatorStyle={[styles.tabIndicator, { backgroundColor: colors.accent }]}
                 tabStyle={styles.tab}
                 options={{
                     all: {
@@ -171,12 +223,15 @@ export const NotesListScreen = () => {
                     reminders: {
                         label: ({ focused }) => renderTabLabel('reminders', 'Reminders', focused),
                     },
+                    locked: {
+                        label: ({ focused }) => renderTabLabel('locked', 'Locked', focused),
+                    },
                 }}
                 pressColor="transparent"
                 pressOpacity={0.7}
             />
         ),
-        [renderTabLabel]
+        [renderTabLabel, colors]
     );
 
     const handlePress = useCallback(async () => {
@@ -185,22 +240,34 @@ export const NotesListScreen = () => {
     }, []);
 
     return (
-        <View style={[styles.container, { paddingTop: top }]}>
+        <View style={[styles.container, { backgroundColor: colors.background, paddingTop: top }]}>
             <View style={{ gap: 16 }}>
-                <View style={styles.headerContainer}>
-                    <Text style={styles.headerTitle}>
-                        Memora
-                    </Text>
-                    <Pressable hitSlop={10} onPress={() => router.push('/register')}>
-                        <Text style={styles.registerText}>SignUp/SignIn</Text>
-                    </Pressable>
+                <View style={{ paddingHorizontal: 16 }}>
+                    <View style={[styles.headerContainer, { backgroundColor: colors.background }]}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.headerTitle, { color: colors.text }]}>Memora</Text>
+                        </View>
+                        <Pressable hitSlop={10} onPress={() => router.push('/menu')}>
+                            <TextAlignJustify
+                                size={24}
+                                color={colors.text}
+                                style={{ marginTop: 2 }}
+                            />
+                        </Pressable>
+                    </View>
+                    {isAuthenticated && <SyncIndicator status={syncStatus} />}
                 </View>
-                <View style={styles.searchInputContainer}>
-                    <Search size={20} color="#666" />
+                <View
+                    style={[
+                        styles.searchInputContainer,
+                        { backgroundColor: colors.cardBackground },
+                    ]}
+                >
+                    <Search size={20} color={colors.textTertiary} />
                     <TextInput
                         placeholder="Search notes..."
-                        placeholderTextColor="#666"
-                        style={styles.searchInput}
+                        placeholderTextColor={colors.textTertiary}
+                        style={[styles.searchInput, { color: colors.text }]}
                         value={localSearch}
                         onChangeText={handleSearchChange}
                         returnKeyType="search"
@@ -209,7 +276,7 @@ export const NotesListScreen = () => {
                     />
                     {localSearch.length > 0 && (
                         <Pressable onPress={handleClearSearch} hitSlop={10}>
-                            <X size={20} color="#666" />
+                            <X size={20} color={colors.textTertiary} />
                         </Pressable>
                     )}
                 </View>
@@ -227,156 +294,32 @@ export const NotesListScreen = () => {
             <Pressable
                 style={({ pressed }) => [
                     styles.fab,
-                    { bottom },
+                    { backgroundColor: colors.accent },
+                    { bottom: bottom + 16 },
                     pressed && styles.fabPressed,
                 ]}
                 onPress={handlePress}
             >
-                <Plus size={28} color="#FFF" strokeWidth={2.5} />
+                <Plus size={20} color="#FFF" strokeWidth={2.5} />
+                <Text style={styles.fabText}>New</Text>
             </Pressable>
+
+            <PinModal
+                visible={pinModalVisible}
+                mode="verify"
+                onSuccess={() => {
+                    setPinModalVisible(false);
+                    if (pendingNoteId) {
+                        router.push({ pathname: '/editor', params: { id: pendingNoteId } });
+                        setPendingNoteId(null);
+                    }
+                }}
+                onCancel={() => {
+                    setPinModalVisible(false);
+                    setPendingNoteId(null);
+                }}
+                onVerify={pendingNoteId ? (pin) => verifyPin(pendingNoteId, pin) : undefined}
+            />
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#000',
-        gap: 12
-    },
-    headerContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        backgroundColor: '#000',
-        gap: 16,
-    },
-    headerTitle: {
-        flex: 1,
-        fontSize: 30,
-        color: '#FFF',
-        ...fonts.fontBold,
-    },
-    registerText: {
-        fontSize: 16,
-        ...fonts.fontMedium,
-        color: '#007AFF'
-    },
-    searchIconContainer: {
-        width: 40,
-        height: 40,
-        flexDirection: 'row',
-        backgroundColor: '#1C1C1E',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: 99
-    },
-    searchInputContainer: {
-        flexDirection: 'row',
-        borderRadius: 10,
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 4,
-        marginHorizontal: 16,
-        backgroundColor: '#1C1C1E',
-        gap: 8
-    },
-    searchInput: {
-        flex: 1,
-        fontSize: 16,
-        color: '#FFF',
-        ...fonts.fontMedium,
-        letterSpacing: 0.2
-    },
-    tabBar: {
-        backgroundColor: '#000',
-        elevation: 0,
-        shadowOpacity: 0,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: '#222',
-        height: TAB_BAR_HEIGHT,
-    },
-    tabIndicator: {
-        backgroundColor: '#007AFF',
-        height: 2.5,
-        borderRadius: 2,
-    },
-    tab: {
-        width: WINDOW_WIDTH / 3,
-        paddingHorizontal: 4,
-        minHeight: TAB_BAR_HEIGHT,
-    },
-    cancelButtonContainer: {
-        position: 'absolute',
-        right: 16,
-        top: 10,
-        height: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    cancelButton: {
-        paddingHorizontal: 8,
-        height: '100%',
-        justifyContent: 'center',
-    },
-    cancelButtonText: {
-        color: '#007AFF',
-        fontSize: 16,
-        ...fonts.fontMedium,
-    },
-    tabLabelContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        maxWidth: '100%',
-        paddingHorizontal: 4,
-    },
-    tabLabelText: {
-        fontSize: 14,
-        color: '#8E8E93',
-        ...fonts.fontSemiBold,
-        flexShrink: 1,
-    },
-    tabLabelTextActive: {
-        color: '#FFF',
-    },
-    tabCountBadge: {
-        backgroundColor: '#2C2C2E',
-        borderRadius: 8,
-        paddingHorizontal: 6,
-        paddingVertical: 1,
-        minWidth: 20,
-        alignItems: 'center',
-    },
-    tabCountBadgeActive: {
-        backgroundColor: '#007AFF25',
-    },
-    tabCountText: {
-        fontSize: 11,
-        color: '#8E8E93',
-        ...fonts.fontSemiBold,
-    },
-    tabCountTextActive: {
-        color: '#007AFF',
-    },
-    fab: {
-        position: 'absolute',
-        right: 16,
-        width: 54,
-        height: 54,
-        borderRadius: 100,
-        backgroundColor: '#007AFF',
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#007AFF',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 8,
-        elevation: 8,
-    },
-    fabPressed: {
-        transform: [{ scale: 0.92 }],
-        opacity: 0.9,
-    },
-});

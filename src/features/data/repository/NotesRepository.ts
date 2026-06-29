@@ -10,7 +10,9 @@ export interface INotesRepository {
         type: 'note' | 'reminder',
         reminderAt?: number,
         audioUri?: string,
-        images?: ImagePickerAsset[]
+        images?: ImagePickerAsset[],
+        isLocked?: number,
+        userId?: string
     ): Promise<Note>;
     updateNote(
         id: string,
@@ -20,9 +22,14 @@ export interface INotesRepository {
         reminderAt?: number,
         isPinned?: number,
         audioUri?: string,
-        images?: ImagePickerAsset[]
+        images?: ImagePickerAsset[],
+        isLocked?: number
     ): Promise<Note>;
     deleteNote(id: string): Promise<void>;
     searchNotes(query: string, limit: number, offset: number): Promise<Note[]>;
-    getNotesCounts(searchQuery?: string): Promise<{ all: number; pinned: number; notes: number; reminders: number }>;
+    getNotesCounts(
+        searchQuery?: string
+    ): Promise<{ all: number; pinned: number; notes: number; reminders: number }>;
+    toggleLock(id: string, isLocked: number): Promise<Note>;
+    getUnsyncedNotes(): Promise<Note[]>;
 }
