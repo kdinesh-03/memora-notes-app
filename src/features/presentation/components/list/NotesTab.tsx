@@ -10,7 +10,7 @@ import { Note } from '../../../domain/entities/Note';
 import { NoteItem } from './NoteItem';
 import { SwipeableNote } from './SwipeableNote';
 import { fonts } from '../../../../shared/utils/fonts';
-import { useStore } from '../../../../shared/store/useStore';
+import { useNoteStore } from '@/shared/store/useNoteStore';
 
 interface NotesTabProps {
     notes: Note[];
@@ -30,7 +30,7 @@ export const NotesTab = ({
     activeTab,
 }: NotesTabProps) => {
     const { bottom } = useSafeAreaInsets();
-    const { reorderNotes } = useStore();
+    const { reorderNotes } = useNoteStore();
 
     const handlePress = useCallback(
         async (id: string) => {

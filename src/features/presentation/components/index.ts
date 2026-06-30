@@ -7,3 +7,7 @@ export { default as PinModal } from './shared/PinModal';
 export { SettingsRow } from './menu/SettingsRow';
 export { ChangePassword } from './menu/ChangePassword';
 export { DeleteAccount } from './menu/DeleteAccount';
+export { SignOut } from './menu/SignOut';
+export { default as SegmentControl } from './menu/SegmentControl';
+export { BottomSheetProvider, useBottomSheet } from './shared/BottomSheet';
+export { ForgotPassword } from './auth/ForgotPassword';

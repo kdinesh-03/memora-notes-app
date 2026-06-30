@@ -11,6 +11,7 @@ interface AppState {
         pinned: number;
         notes: number;
         reminders: number;
+        locked: number;
     };
     setSearchQuery: (query: string) => void;
     setNotes: (notes: Note[]) => void;
@@ -26,6 +27,7 @@ interface AppState {
         pinned: number;
         notes: number;
         reminders: number;
+        locked: number;
     }) => void;
     toggleNoteLock: (id: string, isLocked: number) => void;
 }
@@ -39,12 +41,12 @@ const sortNotes = (a: Note, b: Note) => {
     return b.updated_at - a.updated_at;
 };
 
-export const useStore = create<AppState>((set) => ({
+export const useNoteStore = create<AppState>((set) => ({
     notes: [],
     loading: false,
     hasMore: true,
     searchQuery: '',
-    tabCounts: { all: 0, pinned: 0, notes: 0, reminders: 0 },
+    tabCounts: { all: 0, pinned: 0, notes: 0, reminders: 0, locked: 0 },
     setSearchQuery: (query) => set({ searchQuery: query }),
     setNotes: (notes) => set({ notes: [...notes].sort(sortNotes) }),
     appendNotes: (newNotes) =>

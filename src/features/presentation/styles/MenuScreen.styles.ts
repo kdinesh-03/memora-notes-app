@@ -89,36 +89,34 @@ export const styles = StyleSheet.create({
         fontSize: 14,
         ...fonts.fontRegular,
     },
-    // Theme segmented control
-    themeSegment: {
+    rowContent: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 8,
+    },
+    // Segmented control
+    segement: {
         flexDirection: 'row',
         borderRadius: 10,
         padding: 3,
-        gap: 3,
     },
-    themeSegmentBtn: {
+    segementBtn: {
         flex: 1,
         paddingVertical: 12,
         borderRadius: 8,
         alignItems: 'center',
     },
-    themeSegmentBtnActive: {},
-    themeSegmentText: {
+    segementText: {
         fontSize: 13,
         ...fonts.fontMedium,
     },
-    themeSegmentTextActive: {
+    segementTextActive: {
         ...fonts.fontSemiBold,
     },
-    // Modal
-    modalOverlay: {
-        flex: 1,
-        justifyContent: 'flex-end',
-    },
     modalSheet: {
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        padding: 24,
+        padding: 16,
         gap: 16,
     },
     modalTitle: {
@@ -127,17 +125,44 @@ export const styles = StyleSheet.create({
         textAlign: 'center',
     },
     modalSubtitle: {
-        fontSize: 14,
+        fontSize: 15,
         ...fonts.fontRegular,
         textAlign: 'center',
-        lineHeight: 20,
+        lineHeight: 25,
+        letterSpacing: 0.2,
     },
-    modalInput: {
+    inputGroup: {
+        gap: 8,
+    },
+    label: {
+        fontSize: 14,
+        ...fonts.fontMedium,
+        marginLeft: 4,
+    },
+    inputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
         borderWidth: 1.5,
         borderRadius: 12,
         paddingHorizontal: 16,
-        height: 52,
+        height: 56,
+    },
+    inputContainerFocused: {},
+    inputContainerError: {},
+    inputIcon: {
+        marginRight: 12,
+    },
+    textInput: {
+        flex: 1,
         fontSize: 16,
+        ...fonts.fontRegular,
+        height: '100%',
+    },
+    passwordToggle: {
+        padding: 4,
+    },
+    errorText: {
+        fontSize: 14,
         ...fonts.fontRegular,
     },
     modalActions: {

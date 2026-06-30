@@ -6,7 +6,6 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { TabView, TabBar, SceneRendererProps, NavigationState } from 'react-native-tab-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useStore } from '../../../shared/store/useStore';
 import { useNotes } from '../hooks/useNotes';
 import { NotesTab } from '../components/list/NotesTab';
 import { Note } from '../../domain/entities/Note';
@@ -17,6 +16,7 @@ import PinModal from '../components/shared/PinModal';
 import { Toast } from '@/features/presentation/context/ToastProvider';
 import { useColors } from '@/shared/theme/colors';
 import { styles, WINDOW_WIDTH } from '../styles/NotesListScreen.styles';
+import { useNoteStore } from '@/shared/store/useNoteStore';
 
 type TabRoute = {
     key: string;
@@ -61,7 +61,7 @@ const SyncIndicator = ({ status }: { status: string }) => {
 
 export const NotesListScreen = () => {
     const { notes, loading, handleDelete, handleTogglePin, syncStatus } = useNotes();
-    const { searchQuery, setSearchQuery, tabCounts, setTabCounts } = useStore();
+    const { searchQuery, setSearchQuery, tabCounts, setTabCounts } = useNoteStore();
     const { isAuthenticated } = useAuth();
     const [localSearch, setLocalSearch] = useState(searchQuery);
     const { top, bottom } = useSafeAreaInsets();
@@ -91,12 +91,12 @@ export const NotesListScreen = () => {
     const isSearching = searchQuery.trim().length > 0;
 
     const filteredNotes = useMemo((): Record<string, Note[]> => {
-        const source = notes;
         return {
-            all: source,
-            pinned: source.filter((n) => n.is_pinned === 1),
-            notes: source.filter((n) => n.type === 'note'),
-            reminders: source.filter((n) => n.type === 'reminder'),
+            all: notes,
+            pinned: notes.filter((n) => n.is_pinned === 1),
+            notes: notes.filter((n) => n.type === 'note'),
+            reminders: notes.filter((n) => n.type === 'reminder'),
+            locked: notes.filter((n) => n.is_locked === 1),
         };
     }, [notes]);
 
@@ -236,7 +236,7 @@ export const NotesListScreen = () => {
 
     const handlePress = useCallback(async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        router.push('/editor');
+        router.push('/reset-password');
     }, []);
 
     return (
@@ -295,7 +295,7 @@ export const NotesListScreen = () => {
                 style={({ pressed }) => [
                     styles.fab,
                     { backgroundColor: colors.accent },
-                    { bottom: bottom + 16 },
+                    { bottom: bottom + 5 },
                     pressed && styles.fabPressed,
                 ]}
                 onPress={handlePress}

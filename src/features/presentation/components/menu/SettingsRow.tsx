@@ -24,11 +24,13 @@ export const SettingsRow = (props: SettingsRowProps) => {
             style={({ pressed }) => [styles.row, pressed && onPress && { opacity: 0.7 }]}
         >
             <View style={[styles.rowIcon, { backgroundColor: iconBg }]}>{icon}</View>
-            <Text style={[styles.rowLabel, { color: labelColor || colors.text }]}>{label}</Text>
-            {value && (
-                <Text style={[styles.rowValue, { color: colors.textTertiary }]}>{value}</Text>
-            )}
-            {rightElement}
+            <View style={styles.rowContent}>
+                <Text style={[styles.rowLabel, { color: labelColor || colors.text }]}>{label}</Text>
+                {value && (
+                    <Text style={[styles.rowValue, { color: colors.textTertiary }]}>{value}</Text>
+                )}
+                {rightElement}
+            </View>
             {onPress && !rightElement && <ChevronRight size={18} color={colors.textTertiary} />}
         </Pressable>
     );

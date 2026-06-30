@@ -5,7 +5,6 @@ import {
     scheduleNoteNotifications,
     requestNotificationPermissions,
 } from '../../../shared/services/notifications';
-import { useStore } from '../../../shared/store/useStore';
 import { createNoteUseCase } from '../../domain/usecases/createNote.usecase';
 import { getNoteByIdUseCase } from '../../domain/usecases/getNoteById.usecase';
 import { updateNoteUseCase } from '../../domain/usecases/updateNote.usecase';
@@ -13,9 +12,10 @@ import { toggleLockUseCase } from '../../domain/usecases/toggleLock.usecase';
 import { Toast } from '@/features/presentation/context/ToastProvider';
 import { useAuth } from '../../../shared/store/useAuth';
 import * as Crypto from 'expo-crypto';
+import { useNoteStore } from '@/shared/store/useNoteStore';
 
 export const useNoteEditor = (id?: string) => {
-    const { addNote, updateNote, toggleNoteLock } = useStore();
+    const { addNote, updateNote, toggleNoteLock } = useNoteStore();
     const { user } = useAuth();
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');

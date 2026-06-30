@@ -1,4 +1,3 @@
-import * as Crypto from 'expo-crypto';
 import { getDb } from '../../../infrastructure/database/sqlite';
 import { Note } from '../../domain/entities/Note';
 import type { ImagePickerAsset } from 'expo-image-picker';
@@ -8,17 +7,21 @@ import { mapInIdle } from '../../../shared/utils/idle';
 
 const parseNoteRow = async (row: any): Promise<Note> => {
     let decryptedContent = row.content;
-    if (isEncrypted(row.content)) {
+    let decryptedTitle = row.title;
+    if (isEncrypted(row.content) || isEncrypted(row.title)) {
         try {
             decryptedContent = await decrypt(row.content);
+            decryptedTitle = await decrypt(row.title);
         } catch (e) {
             console.log('Failed to decrypt local note content:', e);
             decryptedContent = '[Encrypted - unable to decrypt]';
+            decryptedTitle = '[Encrypted - unable to decrypt]';
         }
     }
 
     return {
         ...row,
+        title: decryptedTitle,
         content: decryptedContent,
         images: row.images ? JSON.parse(row.images) : undefined,
     };
@@ -69,6 +72,7 @@ export const createNote = async (
     const finalReminderAt = type === 'note' ? undefined : reminderAt;
     const serializedImages = images ? JSON.stringify(images) : null;
     const encryptedContent = await encrypt(content);
+    const encryptedTitle = await encrypt(title);
 
     await db.runAsync(
         `INSERT INTO notes 
@@ -76,7 +80,7 @@ export const createNote = async (
    VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, 'pending', ?, ?, ?, ?)`,
         [
             id,
-            title,
+            encryptedTitle,
             encryptedContent,
             type,
             finalReminderAt ?? null,
@@ -136,13 +140,14 @@ export const updateNote = async (
     const updatedIsLocked = isLocked !== undefined ? isLocked : (existing.is_locked ?? 0);
     const serializedImages = updatedImages ? JSON.stringify(updatedImages) : null;
     const encryptedContent = await encrypt(updatedContent);
+    const encryptedTitle = await encrypt(updatedTitle);
 
     await db.runAsync(
         `UPDATE notes 
    SET title = ?, content = ?, type = ?, reminder_at = ?, is_pinned = ?, audio_uri = ?, images = ?, is_locked = ?, sync_status = 'pending', updated_at = ? 
    WHERE id = ?`,
         [
-            updatedTitle,
+            encryptedTitle,
             encryptedContent,
             updatedType,
             updatedReminderAt ?? null,
@@ -220,6 +225,7 @@ export const upsertNoteFromRemote = async (note: Note): Promise<void> => {
     const db = await getDb();
     const serializedImages = note.images ? JSON.stringify(note.images) : null;
     const encryptedContent = await encrypt(note.content);
+    const encryptedTitle = await encrypt(note.title);
 
     await db.runAsync(
         `INSERT OR REPLACE INTO notes 
@@ -227,7 +233,7 @@ export const upsertNoteFromRemote = async (note: Note): Promise<void> => {
    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?, ?, ?, ?, ?)`,
         [
             note.id,
-            note.title,
+            encryptedTitle,
             encryptedContent,
             note.type,
             note.reminder_at ?? null,
@@ -265,7 +271,7 @@ export const searchNotes = async (
 
 export const getNotesCounts = async (
     searchQuery?: string
-): Promise<{ all: number; pinned: number; notes: number; reminders: number }> => {
+): Promise<{ all: number; pinned: number; notes: number; reminders: number; locked: number }> => {
     const db = await getDb();
 
     if (searchQuery && searchQuery.trim().length > 0) {
@@ -284,6 +290,7 @@ export const getNotesCounts = async (
             pinned: filtered.filter((n) => n.is_pinned === 1).length,
             notes: filtered.filter((n) => n.type === 'note').length,
             reminders: filtered.filter((n) => n.type === 'reminder').length,
+            locked: filtered.filter((n) => n.is_locked === 1).length,
         };
     } else {
         const sql = `
@@ -291,7 +298,8 @@ export const getNotesCounts = async (
         COUNT(*) as "all",
         COUNT(CASE WHEN is_pinned = 1 THEN 1 END) as "pinned",
         COUNT(CASE WHEN type = 'note' THEN 1 END) as "notes",
-        COUNT(CASE WHEN type = 'reminder' THEN 1 END) as "reminders"
+        COUNT(CASE WHEN type = 'reminder' THEN 1 END) as "reminders",
+        COUNT(CASE WHEN is_locked = 1 THEN 1 END) as "locked"
       FROM notes
       WHERE deleted_at IS NULL
     `;
@@ -301,6 +309,7 @@ export const getNotesCounts = async (
             pinned: result?.pinned ?? 0,
             notes: result?.notes ?? 0,
             reminders: result?.reminders ?? 0,
+            locked: result?.locked ?? 0,
         };
     }
 };

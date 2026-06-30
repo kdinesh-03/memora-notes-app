@@ -1,5 +1,5 @@
 import {
-    useAudioRecorder,
+    useAudioRecorder as useRecorder,
     useAudioRecorderState,
     RecordingPresets,
     AudioModule,
@@ -7,8 +7,8 @@ import {
 } from 'expo-audio';
 import { useEffect } from 'react';
 
-export const useAudioRecorderHook = () => {
-    const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+export const useAudioRecorder = () => {
+    const recorder = useRecorder(RecordingPresets.HIGH_QUALITY);
     const state = useAudioRecorderState(recorder);
 
     useEffect(() => {

@@ -53,10 +53,12 @@ export const fetchAllRemoteNotes = async (userId: string): Promise<RemoteNote[]>
 export const upsertRemoteNote = async (note: RemoteNote): Promise<void> => {
     // Encrypt content before sending to Supabase
     const encryptedContent = await encrypt(note.content);
+    const encryptedTitle = await encrypt(note.title);
 
     const remoteNote = {
         ...note,
         content: encryptedContent,
+        title: encryptedTitle,
         is_pinned: Boolean(note.is_pinned),
         is_locked: Boolean(note.is_locked),
         sync_status: 'synced',
@@ -76,9 +78,11 @@ export const batchUpsertRemoteNotes = async (notes: RemoteNote[]): Promise<void>
     const encryptedNotes = await Promise.all(
         notes.map(async (note) => {
             const encryptedContent = await encrypt(note.content);
+            const encryptedTitle = await encrypt(note.title);
             return {
                 ...note,
                 content: encryptedContent,
+                title: encryptedTitle,
                 is_pinned: Boolean(note.is_pinned),
                 is_locked: Boolean(note.is_locked),
                 sync_status: 'synced',
@@ -105,17 +109,21 @@ export const deleteRemoteNote = async (noteId: string): Promise<void> => {
 
 export const decryptRemoteNote = async (note: RemoteNote): Promise<RemoteNote> => {
     let decryptedContent = note.content;
-    if (isEncrypted(note.content)) {
+    let decryptedTitle = note.title;
+    if (isEncrypted(note.content) || isEncrypted(note.title)) {
         try {
             decryptedContent = await decrypt(note.content);
+            decryptedTitle = await decrypt(note.title);
         } catch (e) {
             console.log('Failed to decrypt note content:', e);
             decryptedContent = '[Encrypted - unable to decrypt]';
+            decryptedTitle = '[Encrypted - unable to decrypt]';
         }
     }
 
     return {
         ...note,
         content: decryptedContent,
+        title: decryptedTitle,
     };
 };

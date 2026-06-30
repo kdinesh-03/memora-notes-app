@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { useStore } from '../../../shared/store/useStore';
 import { Note } from '../../domain/entities/Note';
 import { deleteNoteUseCase } from '../../domain/usecases/deleteNote.usecase';
 import { getNotesUseCase } from '../../domain/usecases/getNotes.usecase';
@@ -11,6 +10,7 @@ import { cancelNoteNotifications } from '../../../shared/services/notifications'
 import { Toast } from '@/features/presentation/context/ToastProvider';
 import { useAuth } from '../../../shared/store/useAuth';
 import { useSync } from '../../../shared/store/useSync';
+import { useNoteStore } from '@/shared/store/useNoteStore';
 
 const PAGE_SIZE = 20;
 
@@ -27,7 +27,7 @@ export const useNotes = () => {
         removeNote,
         updateNote,
         toggleNoteLock,
-    } = useStore();
+    } = useNoteStore();
 
     const { isAuthenticated, user } = useAuth();
     const { triggerSync, syncStatus } = useSync();
@@ -38,7 +38,7 @@ export const useNotes = () => {
         async (isNextPage = false) => {
             if (isNextPage && loading) return;
 
-            const currentQuery = useStore.getState().searchQuery.trim();
+            const currentQuery = useNoteStore.getState().searchQuery.trim();
 
             setLoading(true);
             try {
@@ -47,7 +47,7 @@ export const useNotes = () => {
                     const offset = isNextPage ? (searchPageRef.current + 1) * PAGE_SIZE : 0;
                     result = await searchNotesUseCase(currentQuery, PAGE_SIZE, offset);
 
-                    if (currentQuery !== useStore.getState().searchQuery) return;
+                    if (currentQuery !== useNoteStore.getState().searchQuery) return;
 
                     if (isNextPage) {
                         searchPageRef.current += 1;
@@ -63,7 +63,7 @@ export const useNotes = () => {
 
                     result = await getNotesUseCase(PAGE_SIZE, cursor);
 
-                    if (useStore.getState().searchQuery !== '') return;
+                    if (useNoteStore.getState().searchQuery !== '') return;
 
                     setHasMore(result.length === PAGE_SIZE);
                 }

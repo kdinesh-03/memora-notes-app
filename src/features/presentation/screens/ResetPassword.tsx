@@ -1,29 +1,28 @@
-import { View, Text, TextInput, Pressable, ActivityIndicator } from 'react-native';
-import { useState } from 'react';
+import { View, Text, TextInput, Pressable, ActivityIndicator, BackHandler } from 'react-native';
+import { useEffect, useState } from 'react';
 import { useColors } from '@/shared/theme/colors';
 import { useAuth } from '@/shared/store/useAuth';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Toast } from '../../context/ToastProvider';
 import * as Haptics from 'expo-haptics';
-import { styles } from '../../styles/MenuScreen.styles';
-import { Eye, EyeOff, Key, KeyRound } from 'lucide-react-native';
+import { ChevronLeft, Eye, EyeOff, KeyRound } from 'lucide-react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { passwordSchema, PasswordSchema } from '../../validations/auth';
+import { PasswordSchema, passwordSchema } from '../validations/auth';
+import { Toast } from '../context/ToastProvider';
+import { styles } from '../styles/MenuScreen.styles';
+import { router } from 'expo-router';
 
-type ChangePasswordProps = {
-    onClose: () => void;
-};
-
-export const ChangePassword = ({ onClose }: ChangePasswordProps) => {
+export const ResetPassword = () => {
     const colors = useColors();
-    const { changePassword } = useAuth();
-    const { bottom } = useSafeAreaInsets();
+    const { changePassword, signOut } = useAuth();
+    const { bottom, top } = useSafeAreaInsets();
 
     const [showNew, setShowNew] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
     const [loading, setLoading] = useState(false);
+
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [focusedField, setFocusedField] = useState<'new-password' | 'confirm-password' | null>(
         null
     );
@@ -32,36 +31,57 @@ export const ChangePassword = ({ onClose }: ChangePasswordProps) => {
         handleSubmit: handleFormSubmit,
         control,
         formState: { errors },
-        reset,
     } = useForm({
         resolver: yupResolver(passwordSchema),
     });
 
-    const handleClose = () => {
-        reset();
-        onClose();
-    };
-
     const handleSave = async (data: PasswordSchema) => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        setLoading(true);
+        setIsSubmitting(true);
         const result = await changePassword(data.newPassword);
-        setLoading(false);
+        setIsSubmitting(false);
         if (result.success) {
             Toast.show({ message: 'Password changed successfully' });
-            handleClose();
+            router.replace('/');
         } else {
             Toast.show({ message: result.error || 'Failed to change password' });
         }
     };
 
+    const handleBack = async () => {
+        setLoading(true);
+        await signOut();
+        router.replace('/');
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+            handleBack();
+            return true;
+        });
+        return () => sub.remove();
+    }, []);
+
     return (
         <View
             style={[
                 styles.modalSheet,
-                { backgroundColor: colors.cardBackground, paddingBottom: bottom + 5 },
+                {
+                    flex: 1,
+                    backgroundColor: colors.background,
+                    paddingTop: top,
+                    paddingBottom: bottom + 5,
+                },
             ]}
         >
+            <View style={styles.header}>
+                <Pressable onPress={handleBack} style={styles.backButton}>
+                    <ChevronLeft color={colors.text} size={25} />
+                    <Text style={[styles.backText, { color: colors.text }]}>Back</Text>
+                </Pressable>
+            </View>
+
             <View style={{ alignItems: 'center', gap: 8 }}>
                 <View
                     style={{
@@ -75,7 +95,7 @@ export const ChangePassword = ({ onClose }: ChangePasswordProps) => {
                 >
                     <KeyRound size={26} color={colors.accent} />
                 </View>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>Change Password</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Reset Password</Text>
                 <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
                     Enter and confirm your new password below.
                 </Text>
@@ -191,27 +211,15 @@ export const ChangePassword = ({ onClose }: ChangePasswordProps) => {
                 )}
             </View>
 
+            <View style={{ flex: 1 }} />
+
             <View style={styles.modalActions}>
-                <Pressable
-                    style={[
-                        styles.modalBtnSecondary,
-                        {
-                            borderColor: colors.border,
-                            backgroundColor: colors.cardBackground,
-                        },
-                    ]}
-                    onPress={handleClose}
-                >
-                    <Text style={[styles.modalBtnText, { color: colors.textSecondary }]}>
-                        Cancel
-                    </Text>
-                </Pressable>
                 <Pressable
                     style={[styles.modalBtnPrimary, { backgroundColor: colors.accent }]}
                     onPress={handleFormSubmit(handleSave)}
-                    disabled={loading}
+                    disabled={isSubmitting}
                 >
-                    {loading ? (
+                    {isSubmitting ? (
                         <ActivityIndicator size="small" color="#FFF" />
                     ) : (
                         <Text style={[styles.modalBtnText, { color: '#FFF' }]}>Save</Text>

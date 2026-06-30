@@ -86,7 +86,7 @@ export const notesRepository = {
 
     async getNotesCounts(
         searchQuery?: string
-    ): Promise<{ all: number; pinned: number; notes: number; reminders: number }> {
+    ): Promise<{ all: number; pinned: number; notes: number; reminders: number; locked: number }> {
         return await getNotesCounts(searchQuery);
     },
 

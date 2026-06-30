@@ -11,12 +11,16 @@ import { Toast } from '@/features/presentation/context/ToastProvider';
 import { router } from 'expo-router';
 import { useColors } from '@/shared/theme/colors';
 import { styles } from '../styles/Register.styles';
+import { ForgotPassword, useBottomSheet } from '../components';
 
 export default function Register() {
     const colors = useColors();
     const { bottom, top } = useSafeAreaInsets();
-    const [isSignUp, setIsSignUp] = useState(false);
     const { signUp, signIn } = useAuth();
+
+    const { showBottomSheet, hideBottomSheet } = useBottomSheet();
+
+    const [isSignUp, setIsSignUp] = useState(false);
 
     const {
         handleSubmit: handleFormSubmit,
@@ -77,6 +81,14 @@ export default function Register() {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setIsSignUp((prev) => !prev);
         clearErrors();
+    };
+
+    const forgotPassword = () => {
+        showBottomSheet(
+            () => <ForgotPassword onClose={hideBottomSheet} />,
+            colors.background,
+            'hide'
+        );
     };
 
     return (
@@ -240,6 +252,16 @@ export default function Register() {
                             </Text>
                         )}
                     </View>
+
+                    {!isSignUp && (
+                        <View style={styles.forgotPasswordContainer}>
+                            <Pressable hitSlop={10} onPress={forgotPassword}>
+                                <Text style={[styles.forgotPasswordText, { color: colors.accent }]}>
+                                    Forgot Password?
+                                </Text>
+                            </Pressable>
+                        </View>
+                    )}
                 </View>
 
                 <Pressable

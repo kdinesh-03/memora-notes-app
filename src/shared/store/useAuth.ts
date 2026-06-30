@@ -48,7 +48,6 @@ export const useAuth = create<AuthState>((set, get) => ({
                     isLoading: false,
                 });
 
-                // Run initial sync to push existing local notes
                 try {
                     await initialSync(data.user.id);
                 } catch (e) {

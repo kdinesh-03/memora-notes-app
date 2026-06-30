@@ -78,6 +78,14 @@ export const styles = StyleSheet.create({
         fontSize: 14,
         ...fonts.fontRegular,
     },
+    forgotPasswordContainer: {
+        alignItems: 'flex-start',
+    },
+    forgotPasswordText: {
+        fontSize: 14,
+        ...fonts.fontMedium,
+        letterSpacing: 0.2,
+    },
     submitButton: {
         height: 56,
         borderRadius: 12,
