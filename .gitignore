@@ -36,8 +36,3 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
-
-example
-
-README.md
-supabase_schema.sql

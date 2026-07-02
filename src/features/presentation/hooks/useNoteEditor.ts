@@ -13,6 +13,7 @@ import { Toast } from '@/features/presentation/context/ToastProvider';
 import { useAuth } from '../../../shared/store/useAuth';
 import * as Crypto from 'expo-crypto';
 import { useNoteStore } from '@/shared/store/useNoteStore';
+import { triggerSyncIfAvailable } from '../../../shared/services/syncTrigger';
 
 export const useNoteEditor = (id?: string) => {
     const { addNote, updateNote, toggleNoteLock } = useNoteStore();
@@ -21,7 +22,7 @@ export const useNoteEditor = (id?: string) => {
     const [content, setContent] = useState('');
     const [noteType, setNoteType] = useState<'note' | 'reminder'>('note');
     const [reminderAt, setReminderAt] = useState<number | undefined>(undefined);
-    const [audioUri, setAudioUri] = useState<string | undefined>(undefined);
+    const [audioUri, setAudioUri] = useState<string[]>([]);
     const [images, setImages] = useState<ImagePickerAsset[]>([]);
     const [isLocked, setIsLocked] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -37,7 +38,7 @@ export const useNoteEditor = (id?: string) => {
                     setContent(note.content);
                     setNoteType(note.type);
                     setReminderAt(note.reminder_at);
-                    setAudioUri(note.audio_uri);
+                    setAudioUri(note.audio_uri ?? []);
                     setImages(note.images || []);
                     setIsLocked(note.is_locked === 1);
                 }
@@ -47,7 +48,7 @@ export const useNoteEditor = (id?: string) => {
     }, [id]);
 
     const handleSave = async () => {
-        if (!title.trim() && !content.trim() && !audioUri && images.length === 0) return;
+        if (!title.trim() && !content.trim() && audioUri.length === 0 && images.length === 0) return;
 
         setSaving(true);
         try {
@@ -100,6 +101,7 @@ export const useNoteEditor = (id?: string) => {
                     message: `${noteType === 'note' ? 'Note' : 'Reminder'} created successfully`,
                 });
             }
+            triggerSyncIfAvailable();
             router.back();
         } catch (error) {
             console.log('Failed to save note:', error);
@@ -138,6 +140,7 @@ export const useNoteEditor = (id?: string) => {
                 toggleNoteLock(noteIdRef.current, nextLocked);
                 setIsLocked(!isLocked);
                 Toast.show({ message: !isLocked ? 'Note locked' : 'Note unlocked' });
+                triggerSyncIfAvailable();
             } catch (error) {
                 console.log('Failed to toggle lock:', error);
                 Toast.show({ message: 'Failed to toggle lock' });

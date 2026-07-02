@@ -9,7 +9,7 @@ export interface RemoteNote {
     type: string;
     reminder_at: number | null;
     is_pinned: boolean;
-    audio_uri: string | null;
+    audio_uri: any | null;
     images: any | null;
     is_locked: boolean;
     sync_status: string;

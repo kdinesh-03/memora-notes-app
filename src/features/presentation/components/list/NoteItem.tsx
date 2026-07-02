@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Bell, Lock, Pin, StickyNote } from 'lucide-react-native';
+import { Bell, Pin } from 'lucide-react-native';
 import { fonts } from '../../../../shared/utils/fonts';
 import { Note } from '../../../domain/entities/Note';
 import { useColors } from '@/shared/theme/colors';
@@ -80,7 +80,6 @@ export const NoteItem = memo(
                         borderColor: colors.border,
                         borderWidth: 1,
                     },
-                    // isActive && styles.activeCard
                 ]}
             >
                 <View style={styles.titleContainer}>
@@ -104,7 +103,7 @@ export const NoteItem = memo(
                     style={[styles.noteSnippet, { color: colors.textSecondary }]}
                     numberOfLines={2}
                 >
-                    {isLocked ? '🔒 This note is locked' : note.content || 'No content'}
+                    {isLocked ? '🔒 This note is locked' : note.content || (note.audio_uri && note.audio_uri.length > 0 ? 'Audio Note' : 'No content')}
                 </Text>
 
                 <View style={styles.footer}>
@@ -116,9 +115,9 @@ export const NoteItem = memo(
                                     isUpcoming
                                         ? styles.upcomingTimeBadge
                                         : [
-                                              styles.expiredTimeBadge,
-                                              { backgroundColor: colors.tabCountBadge },
-                                          ],
+                                            styles.expiredTimeBadge,
+                                            { backgroundColor: colors.tabCountBadge },
+                                        ],
                                 ]}
                             >
                                 <Bell

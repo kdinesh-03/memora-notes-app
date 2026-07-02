@@ -9,8 +9,8 @@ import { toggleLockUseCase } from '../../domain/usecases/toggleLock.usecase';
 import { cancelNoteNotifications } from '../../../shared/services/notifications';
 import { Toast } from '@/features/presentation/context/ToastProvider';
 import { useAuth } from '../../../shared/store/useAuth';
-import { useSync } from '../../../shared/store/useSync';
 import { useNoteStore } from '@/shared/store/useNoteStore';
+import { triggerSyncIfAvailable } from '../../../shared/services/syncTrigger';
 
 const PAGE_SIZE = 20;
 
@@ -30,7 +30,7 @@ export const useNotes = () => {
     } = useNoteStore();
 
     const { isAuthenticated, user } = useAuth();
-    const { triggerSync, syncStatus } = useSync();
+    const { triggerSync, syncStatus } = useNoteStore();
 
     const searchPageRef = useRef(0);
 
@@ -102,6 +102,7 @@ export const useNotes = () => {
                 message: `Failed to delete ${noteType === 'note' ? 'Note' : 'Reminder'}`,
             });
         }
+        triggerSyncIfAvailable();
     };
 
     const handleTogglePin = async (note: Note) => {
@@ -117,6 +118,7 @@ export const useNotes = () => {
             );
             updateNote(updatedNote);
             Toast.show({ message: nextPinned === 1 ? 'Note pinned' : 'Note unpinned' });
+            triggerSyncIfAvailable();
         } catch (error) {
             console.log('Failed to toggle pin:', error);
             Toast.show({ message: 'Failed to toggle pin' });
@@ -131,6 +133,7 @@ export const useNotes = () => {
             Toast.show({
                 message: nextLocked === 1 ? 'Note locked' : 'Note unlocked',
             });
+            triggerSyncIfAvailable();
             return updatedNote;
         } catch (error) {
             console.log('Failed to toggle lock:', error);

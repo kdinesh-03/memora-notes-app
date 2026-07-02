@@ -2,7 +2,7 @@
     "expo": {
         "name": "Memora",
         "slug": "memora",
-        "version": "1.0.2",
+        "version": "1.0.3",
         "orientation": "portrait",
         "icon": "./src/assets/images/icon.png",
         "scheme": "memora",
@@ -13,13 +13,14 @@
         },
         "android": {
             "adaptiveIcon": {
-                "backgroundColor": "#000000",
+                "backgroundColor": "#ffffff",
                 "foregroundImage": "./src/assets/images/icon.png",
                 "backgroundImage": "./src/assets/images/icon.png",
                 "monochromeImage": "./src/assets/images/icon.png"
             },
             "predictiveBackGestureEnabled": false,
-            "package": "com.memora.app"
+            "package": "com.memora.app",
+            "softwareKeyboardLayoutMode": "pan"
         },
         "web": {
             "output": "static",
@@ -47,7 +48,9 @@
             [
                 "expo-font",
                 {
-                    "fonts": ["./src/assets/fonts"]
+                    "fonts": [
+                        "./src/assets/fonts"
+                    ]
                 }
             ],
             [
@@ -56,7 +59,9 @@
                     "icon": "./src/assets/images/notification.png",
                     "color": "#ffffff",
                     "defaultChannel": "default",
-                    "sounds": ["./src/assets/sounds/notification.wav"],
+                    "sounds": [
+                        "./src/assets/sounds/notification.wav"
+                    ],
                     "enableBackgroundRemoteNotifications": false
                 }
             ],

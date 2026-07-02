@@ -1,44 +1,78 @@
 import { Toast, ToastProvider } from '@/features/presentation/context/ToastProvider';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { initDb } from '../infrastructure/database/sqlite';
-import { requestNotificationPermissions } from '../shared/services/notifications';
 import { router, Stack } from 'expo-router';
 import { useAuth } from '../shared/store/useAuth';
 import { supabase } from '../infrastructure/supabase/supabase';
 import { useColors, useIsDark } from '../shared/theme/colors';
 import { useThemeStore } from '../shared/store/useThemeStore';
-import { BottomSheetProvider } from '@/features/presentation/components';
+import { useAppLock } from '../shared/store/useAppLock';
+import { BottomSheetProvider, AppLockOverlay } from '@/features/presentation/components';
 import * as Linking from 'expo-linking';
+import { useOnboardingStore } from '@/shared/store/useOnboardingStore';
 
-SplashScreen.preventAutoHideAsync().catch(() => {});
+SplashScreen.preventAutoHideAsync().catch(() => { });
 
 export default function RootLayout() {
     const [isDbReady, setIsDbReady] = useState(false);
 
     const { restoreSession, setSession } = useAuth();
     const { loadTheme } = useThemeStore();
+    const { onboardingCompleted } = useOnboardingStore();
+    const { isAppLocked, isAppLockEnabled, loadAppLockSettings, setAppLocked, authenticate } = useAppLock();
 
     useEffect(() => {
         const prepare = async () => {
             try {
-                await Promise.all([initDb(), restoreSession(), loadTheme()]);
-                await requestNotificationPermissions().catch((e) =>
-                    console.log('Error requesting notification permissions:', e.message, e)
-                );
+                await Promise.all([
+                    restoreSession(),
+                    loadTheme(),
+                    initDb(),
+                ]);
             } catch (e) {
                 console.log('Error during initialization:', e);
             } finally {
                 setIsDbReady(true);
-                await SplashScreen.hideAsync().catch(() => {});
+                await SplashScreen.hideAsync().catch(() => { });
             }
         };
         prepare();
+
+        loadAppLockSettings().catch(() => { });
     }, []);
+
+    useEffect(() => {
+        if (!isDbReady) return;
+
+        const handleAppStateChange = (nextAppState: AppStateStatus) => {
+            if (nextAppState === 'active') {
+                if (isAppLockEnabled) {
+                    setAppLocked(true);
+                    authenticate();
+                }
+            } else if (nextAppState === 'background' || nextAppState === 'inactive') {
+                if (isAppLockEnabled) {
+                    setAppLocked(true);
+                }
+            }
+        };
+
+        const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+        if (isAppLockEnabled && isAppLocked) {
+            authenticate();
+        }
+
+        return () => {
+            subscription.remove();
+        };
+    }, [isDbReady, isAppLockEnabled, isAppLocked, setAppLocked, authenticate]);
 
     useEffect(() => {
         const {
@@ -55,7 +89,7 @@ export default function RootLayout() {
     const colors = useColors();
     const isDark = useIsDark();
 
-    const extractTokensFromUrl = (url: string) => {
+    const extractTokensFromUrl = useCallback((url: string) => {
         const hash = url.split('#')[1];
         if (!hash) return {};
 
@@ -66,7 +100,7 @@ export default function RootLayout() {
             refresh_token: params.get('refresh_token'),
             type: params.get('type'),
         };
-    };
+    }, []);
 
     useEffect(() => {
         const handleDeepLink = async (url: string) => {
@@ -101,7 +135,7 @@ export default function RootLayout() {
         });
 
         return () => subscription.remove();
-    }, []);
+    }, [extractTokensFromUrl]);
 
     if (!isDbReady) {
         return null;
@@ -119,7 +153,19 @@ export default function RootLayout() {
                                     headerShown: false,
                                     animation: 'slide_from_right',
                                 }}
-                            />
+                            >
+                                <Stack.Protected guard={!onboardingCompleted}>
+                                    <Stack.Screen name='onboarding' />
+                                </Stack.Protected>
+                                <Stack.Protected guard={onboardingCompleted}>
+                                    <Stack.Screen name='index' />
+                                    <Stack.Screen name='editor' />
+                                    <Stack.Screen name='menu' />
+                                    <Stack.Screen name='register' />
+                                    <Stack.Screen name='reset-password' />
+                                </Stack.Protected>
+                            </Stack>
+                            {isAppLocked && isAppLockEnabled && <AppLockOverlay />}
                         </ToastProvider>
                     </BottomSheetProvider>
                 </KeyboardProvider>

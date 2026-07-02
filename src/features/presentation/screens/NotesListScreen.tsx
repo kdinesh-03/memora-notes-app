@@ -1,5 +1,4 @@
 import { router } from 'expo-router';
-import debounce from 'lodash.debounce';
 import { Plus, Search, X, RefreshCw, CloudOff, Check, TextAlignJustify } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
@@ -7,6 +6,7 @@ import * as Haptics from 'expo-haptics';
 import { TabView, TabBar, SceneRendererProps, NavigationState } from 'react-native-tab-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotes } from '../hooks/useNotes';
+import { useDebounce } from '../hooks/useDebounce';
 import { NotesTab } from '../components/list/NotesTab';
 import { Note } from '../../domain/entities/Note';
 import { getNotesCountsUseCase } from '../../domain/usecases/getNotesCounts.usecase';
@@ -70,13 +70,9 @@ export const NotesListScreen = () => {
     const [pinModalVisible, setPinModalVisible] = useState(false);
     const [pendingNoteId, setPendingNoteId] = useState<string | null>(null);
 
-    const debouncedSearch = useMemo(
-        () =>
-            debounce((query: string) => {
-                setSearchQuery(query);
-            }, 500),
-        [setSearchQuery]
-    );
+    const debouncedSearch = useDebounce((query: string) => {
+        setSearchQuery(query);
+    }, 500);
 
     const handleSearchChange = (text: string) => {
         setLocalSearch(text);
@@ -129,12 +125,12 @@ export const NotesListScreen = () => {
         ({ route }: SceneRendererProps & { route: TabRoute }) => {
             const tabNotes = isSearching
                 ? notes.filter((n) => {
-                      if (route.key === 'pinned') return n.is_pinned === 1;
-                      if (route.key === 'notes') return n.type === 'note';
-                      if (route.key === 'reminders') return n.type === 'reminder';
-                      if (route.key === 'locked') return n.is_locked === 1;
-                      return true;
-                  })
+                    if (route.key === 'pinned') return n.is_pinned === 1;
+                    if (route.key === 'notes') return n.type === 'note';
+                    if (route.key === 'reminders') return n.type === 'reminder';
+                    if (route.key === 'locked') return n.is_locked === 1;
+                    return true;
+                })
                 : filteredNotes[route.key] || [];
 
             return (
@@ -236,7 +232,7 @@ export const NotesListScreen = () => {
 
     const handlePress = useCallback(async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        router.push('/reset-password');
+        router.push('/editor');
     }, []);
 
     return (

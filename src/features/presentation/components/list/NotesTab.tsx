@@ -11,6 +11,8 @@ import { NoteItem } from './NoteItem';
 import { SwipeableNote } from './SwipeableNote';
 import { fonts } from '../../../../shared/utils/fonts';
 import { useNoteStore } from '@/shared/store/useNoteStore';
+import { updateNotesOrder } from '../../../data/datasource/notes';
+import { triggerSyncIfAvailable } from '../../../../shared/services/syncTrigger';
 
 interface NotesTabProps {
     notes: Note[];
@@ -43,6 +45,11 @@ export const NotesTab = ({
     const handleDragEnd = useCallback(
         ({ data }: { data: Note[] }) => {
             reorderNotes(data);
+            const orderedIds = data.map((n) => n.id);
+            updateNotesOrder(orderedIds).catch((err) =>
+                console.log('Failed to persist reorder:', err)
+            );
+            triggerSyncIfAvailable();
         },
         [reorderNotes]
     );

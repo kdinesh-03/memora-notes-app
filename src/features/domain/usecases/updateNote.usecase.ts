@@ -9,7 +9,7 @@ export const updateNoteUseCase = async (
     type?: 'note' | 'reminder',
     reminderAt?: number,
     isPinned?: number,
-    audioUri?: string,
+    audioUri?: string[],
     images?: ImagePickerAsset[],
     isLocked?: number
 ): Promise<Note> => {

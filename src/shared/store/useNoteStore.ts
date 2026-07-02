@@ -1,5 +1,9 @@
 import { create } from 'zustand';
 import { Note } from '../../features/domain/entities/Note';
+import { startSync, SyncResult } from '../../infrastructure/sync/syncEngine';
+import { getQueueCount } from '../../features/data/datasource/syncQueue';
+
+export type SyncStatusType = 'idle' | 'syncing' | 'synced' | 'failed';
 
 interface AppState {
     notes: Note[];
@@ -13,6 +17,10 @@ interface AppState {
         reminders: number;
         locked: number;
     };
+    syncStatus: SyncStatusType;
+    lastSyncAt: number | null;
+    pendingCount: number;
+    lastResult: SyncResult | null;
     setSearchQuery: (query: string) => void;
     setNotes: (notes: Note[]) => void;
     appendNotes: (newNotes: Note[]) => void;
@@ -30,6 +38,9 @@ interface AppState {
         locked: number;
     }) => void;
     toggleNoteLock: (id: string, isLocked: number) => void;
+    triggerSync: (userId: string) => Promise<SyncResult | null>;
+    setSyncStatus: (status: SyncStatusType) => void;
+    updatePendingCount: () => Promise<void>;
 }
 
 const sortNotes = (a: Note, b: Note) => {
@@ -41,12 +52,17 @@ const sortNotes = (a: Note, b: Note) => {
     return b.updated_at - a.updated_at;
 };
 
-export const useNoteStore = create<AppState>((set) => ({
+export const useNoteStore = create<AppState>((set, get) => ({
     notes: [],
     loading: false,
     hasMore: true,
     searchQuery: '',
     tabCounts: { all: 0, pinned: 0, notes: 0, reminders: 0, locked: 0 },
+    syncStatus: 'idle',
+    lastSyncAt: null,
+    pendingCount: 0,
+    lastResult: null,
+
     setSearchQuery: (query) => set({ searchQuery: query }),
     setNotes: (notes) => set({ notes: [...notes].sort(sortNotes) }),
     appendNotes: (newNotes) =>
@@ -77,4 +93,37 @@ export const useNoteStore = create<AppState>((set) => ({
                 )
                 .sort(sortNotes),
         })),
+
+    triggerSync: async (userId: string) => {
+        const { syncStatus } = get();
+        if (syncStatus === 'syncing') return null;
+
+        set({ syncStatus: 'syncing' });
+
+        try {
+            const result = await startSync(userId);
+            set({
+                syncStatus: 'synced',
+                lastSyncAt: Date.now(),
+                lastResult: result,
+                pendingCount: 0,
+            });
+            return result;
+        } catch (error) {
+            console.log('Sync failed:', error);
+            set({ syncStatus: 'failed' });
+            return null;
+        }
+    },
+
+    setSyncStatus: (status) => set({ syncStatus: status }),
+
+    updatePendingCount: async () => {
+        try {
+            const count = await getQueueCount();
+            set({ pendingCount: count });
+        } catch {
+            // silently ignore
+        }
+    },
 }));

@@ -13,9 +13,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNoteEditor } from '../hooks/useNoteEditor';
+import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import * as Haptics from 'expo-haptics';
 import Actions from '../components/editor/Actions';
 import ImageCollage from '../components/editor/ImageCollage';
+import { VoiceRecorder } from '../components/editor/VoiceRecorder';
+import { VoicePlayer } from '../components/editor/VoicePlayer';
 import PinModal from '../components/shared/PinModal';
 import { hasPin, setupPin } from '../hooks/useLockNote';
 import { useColors } from '@/shared/theme/colors';
@@ -29,6 +32,8 @@ export const NoteEditorScreen = () => {
         content,
         noteType,
         reminderAt,
+        audioUri,
+        setAudioUri,
         images,
         setImages,
         handleTitleChange,
@@ -43,12 +48,37 @@ export const NoteEditorScreen = () => {
         noteId,
     } = useNoteEditor(id);
 
+    const { isRecording, duration, start, stop, cancel, handlePermission } = useAudioRecorder();
+
     const { bottom, top } = useSafeAreaInsets();
 
     const [showPicker, setShowPicker] = useState(false);
     const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
 
     const [pinModalVisible, setPinModalVisible] = useState(false);
+
+    const handleRecordVoiceNote = async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        await handlePermission();
+        if (isRecording) {
+            const uri = await stop();
+            if (uri) {
+                setAudioUri((prev) => [...prev, uri]);
+            }
+        } else {
+            await start();
+        }
+    };
+
+    const handleDiscardRecording = async () => {
+        if (isRecording) {
+            await cancel();
+        }
+    };
+
+    const handleDeleteRecording = (index: number) => {
+        setAudioUri((prev) => prev.filter((_, i) => i !== index));
+    };
 
     const handleLockPress = async () => {
         const pinExists = await hasPin(noteId);
@@ -123,6 +153,10 @@ export const NoteEditorScreen = () => {
                         }}
                         handleLock={handleLockPress}
                         isLocked={isLocked}
+                        isRecording={isRecording}
+                        recordingDuration={duration}
+                        onRecordVoiceNote={handleRecordVoiceNote}
+                        audioUri={audioUri}
                     />
 
                     <View style={{ flex: 1, paddingHorizontal: 16 }}>
@@ -148,18 +182,31 @@ export const NoteEditorScreen = () => {
                             />
                         )}
 
-                        <View>
-                            <TextInput
-                                placeholder="Start writing..."
-                                placeholderTextColor={colors.textTertiary}
-                                style={[styles.contentInput, { color: colors.text }]}
-                                value={content}
-                                onChangeText={handleContentChange}
-                                multiline
-                                textAlignVertical="top"
-                                autoCorrect
+                        {isRecording ? (
+                            <VoiceRecorder
+                                duration={duration}
+                                onStop={handleRecordVoiceNote}
+                                onDiscard={handleDiscardRecording}
                             />
-                        </View>
+                        ) : audioUri.length > 0 ? (
+                            <VoicePlayer
+                                audioUris={audioUri}
+                                onDelete={handleDeleteRecording}
+                            />
+                        ) : (
+                            <View>
+                                <TextInput
+                                    placeholder="Start writing..."
+                                    placeholderTextColor={colors.textTertiary}
+                                    style={[styles.contentInput, { color: colors.text }]}
+                                    value={content}
+                                    onChangeText={handleContentChange}
+                                    multiline
+                                    textAlignVertical="top"
+                                    autoCorrect
+                                />
+                            </View>
+                        )}
                     </View>
                 </View>
 
@@ -295,3 +342,5 @@ export const NoteEditorScreen = () => {
         </View>
     );
 };
+
+export default NoteEditorScreen;

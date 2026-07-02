@@ -1,7 +1,5 @@
-import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
 import { ChevronLeft, Cloud, KeyRound, Lock, LogOut, Trash2, User } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useColors } from '@/shared/theme/colors';
@@ -18,6 +16,7 @@ import {
     useBottomSheet,
 } from '../components';
 import { useThemeStore } from '@/shared/store/useThemeStore';
+import { useAppLock } from '@/shared/store/useAppLock';
 import { APPLOCK_OPTIONS, THEME_OPTIONS } from '@/shared/utils/segments';
 
 const SectionLabel = ({ label }: { label: string }) => {
@@ -38,7 +37,38 @@ export const MenuScreen = () => {
     const { setTheme, theme } = useThemeStore();
     const { showBottomSheet, hideBottomSheet } = useBottomSheet();
 
-    const [appLock, setAppLock] = useState('off');
+    const { isAppLockEnabled, setAppLockEnabled, checkBiometricSupport, authenticate } =
+        useAppLock();
+
+    const handleAppLockChange = async (value: 'on' | 'off') => {
+        if (value === 'on') {
+            const isSupported = await checkBiometricSupport();
+            if (!isSupported) {
+                Toast.show({
+                    message: 'Security lock (passcode or biometrics) is not set up on device.',
+                });
+                return;
+            }
+
+            const success = await authenticate();
+            if (success) {
+                setAppLockEnabled(true);
+                Toast.show({ message: 'App Lock enabled' });
+            } else {
+                Toast.show({ message: 'Authentication failed' });
+            }
+        } else {
+            const success = await authenticate();
+            if (success) {
+                setAppLockEnabled(false);
+                Toast.show({ message: 'App Lock disabled' });
+            } else {
+                Toast.show({ message: 'Authentication failed' });
+            }
+        }
+    };
+
+    const appLock = isAppLockEnabled ? 'on' : 'off';
 
     const signOut = () => {
         showBottomSheet(() => <SignOut onClose={hideBottomSheet} />, colors.background, 'hide');
@@ -108,7 +138,7 @@ export const MenuScreen = () => {
                             <View style={{ flex: 1 }}>
                                 <SegmentControl
                                     options={APPLOCK_OPTIONS}
-                                    handleSelection={setAppLock}
+                                    handleSelection={handleAppLockChange}
                                     value={appLock}
                                 />
                             </View>

@@ -1,12 +1,13 @@
 import { fonts } from '@/shared/utils/fonts';
 import React, { useEffect, useState } from 'react';
-import { Text, View, KeyboardAvoidingView, Platform } from 'react-native';
+import { Text, View } from 'react-native';
 import Animated, {
     Easing,
     useAnimatedStyle,
     useSharedValue,
     withTiming,
 } from 'react-native-reanimated';
+import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/shared/theme/colors';
 
@@ -25,6 +26,7 @@ const DURATION = 2000;
 export const Toast: ToastComponent = ({ message }) => {
     const { bottom } = useSafeAreaInsets();
     const colors = useColors();
+    const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
 
     const opacity = useSharedValue(0);
     const translateY = useSharedValue(50);
@@ -55,24 +57,29 @@ export const Toast: ToastComponent = ({ message }) => {
         return () => clearTimeout(timer);
     }, []);
 
-    const animatedStyle = useAnimatedStyle(() => ({
+    const animatedContainerStyle = useAnimatedStyle(() => ({
+        bottom: bottom + 20 + keyboardHeight.value,
+    }));
+
+    const animatedContentStyle = useAnimatedStyle(() => ({
         opacity: opacity.value,
         transform: [{ translateY: translateY.value }],
     }));
 
     return (
-        <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={{
-                position: 'absolute',
-                alignSelf: 'center',
-                width: '100%',
-                zIndex: 9999,
-                bottom: bottom + 20,
-            }}
+        <Animated.View
+            style={[
+                {
+                    position: 'absolute',
+                    alignSelf: 'center',
+                    width: '100%',
+                    zIndex: 9999,
+                },
+                animatedContainerStyle,
+            ]}
             pointerEvents="box-none"
         >
-            <Animated.View style={[animatedStyle]}>
+            <Animated.View style={[animatedContentStyle]}>
                 <View style={{ paddingHorizontal: 20 }}>
                     <View
                         style={{
@@ -102,7 +109,7 @@ export const Toast: ToastComponent = ({ message }) => {
                     </View>
                 </View>
             </Animated.View>
-        </KeyboardAvoidingView>
+        </Animated.View>
     );
 };
 

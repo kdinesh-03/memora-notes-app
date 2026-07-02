@@ -1,6 +1,6 @@
 import { fonts } from '@/shared/utils/fonts';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
-import { Mic, Image, Lock, Unlock } from 'lucide-react-native';
+import { Mic, Image, Lock, Unlock, Square } from 'lucide-react-native';
 import { ImagePickerAsset } from 'expo-image-picker';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
@@ -46,9 +46,30 @@ interface ActionProps {
     handleImage: (uri: ImagePickerAsset[]) => void;
     handleLock?: () => void;
     isLocked?: boolean;
+    isRecording?: boolean;
+    recordingDuration?: number;
+    onRecordVoiceNote?: () => void;
+    audioUri?: string[];
 }
 
-const Actions = ({ handleNoteType, noteType, handleImage, handleLock, isLocked }: ActionProps) => {
+const formatDuration = (ms: number): string => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+};
+
+const Actions = ({
+    handleNoteType,
+    noteType,
+    handleImage,
+    handleLock,
+    isLocked,
+    isRecording,
+    recordingDuration,
+    onRecordVoiceNote,
+    audioUri,
+}: ActionProps) => {
     const colors = useColors();
 
     const handleImagePicker = async () => {
@@ -114,12 +135,30 @@ const Actions = ({ handleNoteType, noteType, handleImage, handleLock, isLocked }
                     style={[
                         styles.actionButton,
                         { backgroundColor: colors.cardBackground, borderColor: colors.border },
+                        isRecording && {
+                            borderColor: '#FF453A',
+                            backgroundColor: '#FF453A15',
+                        },
                     ]}
-                    onPress={() => handleAction('record-voice-note')}
+                    onPress={() => onRecordVoiceNote?.()}
                 >
-                    <Mic size={18} color={colors.textSecondary} />
-                    <Text style={[styles.actionButtonText, { color: colors.textSecondary }]}>
-                        Record Voice Note
+                    {isRecording ? (
+                        <Square size={14} color="#FF453A" />
+                    ) : (
+                        <Mic size={18} color={isRecording ? '#FF453A' : colors.textSecondary} />
+                    )}
+                    <Text
+                        style={[
+                            styles.actionButtonText,
+                            { color: colors.textSecondary },
+                            isRecording && { color: '#FF453A', fontFamily: fonts.fontMedium.fontFamily },
+                        ]}
+                    >
+                        {isRecording
+                            ? `Recording ${formatDuration(recordingDuration ?? 0)}`
+                            : audioUri && audioUri.length > 0
+                                ? `Voice Note (${audioUri.length})`
+                                : 'Record Voice Note'}
                     </Text>
                 </PressableScale>
 

@@ -19,11 +19,21 @@ const parseNoteRow = async (row: any): Promise<Note> => {
         }
     }
 
+    let parsedAudioUri: string[] | undefined;
+    if (row.audio_uri) {
+        try {
+            parsedAudioUri = JSON.parse(row.audio_uri);
+        } catch {
+            parsedAudioUri = [row.audio_uri];
+        }
+    }
+
     return {
         ...row,
         title: decryptedTitle,
         content: decryptedContent,
         images: row.images ? JSON.parse(row.images) : undefined,
+        audio_uri: parsedAudioUri,
     };
 };
 
@@ -60,17 +70,18 @@ export const createNote = async (
     content: string,
     type: 'note' | 'reminder' = 'note',
     reminderAt?: number,
-    audioUri?: string,
+    audioUri?: string[],
     images?: ImagePickerAsset[],
     isLocked?: number,
     userId?: string
 ): Promise<Note> => {
     const db = await getDb();
     const now = Date.now();
-    const deviceId = getDeviceId();
+    const deviceId = await getDeviceId();
 
     const finalReminderAt = type === 'note' ? undefined : reminderAt;
     const serializedImages = images ? JSON.stringify(images) : null;
+    const serializedAudio = audioUri ? JSON.stringify(audioUri) : null;
     const encryptedContent = await encrypt(content);
     const encryptedTitle = await encrypt(title);
 
@@ -84,7 +95,7 @@ export const createNote = async (
             encryptedContent,
             type,
             finalReminderAt ?? null,
-            audioUri ?? null,
+            serializedAudio,
             serializedImages,
             isLocked ?? 0,
             deviceId,
@@ -119,7 +130,7 @@ export const updateNote = async (
     type?: 'note' | 'reminder',
     reminderAt?: number,
     isPinned?: number,
-    audioUri?: string,
+    audioUri?: string[],
     images?: ImagePickerAsset[],
     isLocked?: number
 ): Promise<Note> => {
@@ -139,6 +150,7 @@ export const updateNote = async (
     const updatedImages = images !== undefined ? images : existing.images;
     const updatedIsLocked = isLocked !== undefined ? isLocked : (existing.is_locked ?? 0);
     const serializedImages = updatedImages ? JSON.stringify(updatedImages) : null;
+    const serializedAudio = updatedAudioUri ? JSON.stringify(updatedAudioUri) : null;
     const encryptedContent = await encrypt(updatedContent);
     const encryptedTitle = await encrypt(updatedTitle);
 
@@ -152,7 +164,7 @@ export const updateNote = async (
             updatedType,
             updatedReminderAt ?? null,
             updatedIsPinned,
-            updatedAudioUri ?? null,
+            serializedAudio,
             serializedImages,
             updatedIsLocked,
             now,
@@ -224,6 +236,7 @@ export const getSoftDeletedNotes = async (): Promise<Note[]> => {
 export const upsertNoteFromRemote = async (note: Note): Promise<void> => {
     const db = await getDb();
     const serializedImages = note.images ? JSON.stringify(note.images) : null;
+    const serializedAudio = note.audio_uri ? JSON.stringify(note.audio_uri) : null;
     const encryptedContent = await encrypt(note.content);
     const encryptedTitle = await encrypt(note.title);
 
@@ -238,7 +251,7 @@ export const upsertNoteFromRemote = async (note: Note): Promise<void> => {
             note.type,
             note.reminder_at ?? null,
             note.is_pinned ?? 0,
-            note.audio_uri ?? null,
+            serializedAudio,
             serializedImages,
             note.is_locked ?? 0,
             note.device_id ?? null,
@@ -267,6 +280,19 @@ export const searchNotes = async (
     );
 
     return filtered.slice(offset, offset + limit);
+};
+
+export const updateNotesOrder = async (orderedIds: string[]): Promise<void> => {
+    const db = await getDb();
+    const now = Date.now();
+
+    for (let i = 0; i < orderedIds.length; i++) {
+        const updatedAt = now - i;
+        await db.runAsync(
+            "UPDATE notes SET updated_at = ?, sync_status = 'pending' WHERE id = ?",
+            [updatedAt, orderedIds[i]]
+        );
+    }
 };
 
 export const getNotesCounts = async (

@@ -29,7 +29,7 @@ export const notesRepository = {
         content: string,
         type: 'note' | 'reminder',
         reminderAt?: number,
-        audioUri?: string,
+        audioUri?: string[],
         images?: ImagePickerAsset[],
         isLocked?: number,
         userId?: string
@@ -56,7 +56,7 @@ export const notesRepository = {
         type?: 'note' | 'reminder',
         reminderAt?: number,
         isPinned?: number,
-        audioUri?: string,
+        audioUri?: string[],
         images?: ImagePickerAsset[],
         isLocked?: number
     ): Promise<Note> {

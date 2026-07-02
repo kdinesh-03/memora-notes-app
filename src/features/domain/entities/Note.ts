@@ -7,7 +7,7 @@ export interface Note {
     type: 'note' | 'reminder';
     reminder_at?: number;
     is_pinned?: number;
-    audio_uri?: string;
+    audio_uri?: string[];
     images?: ImagePickerAsset[];
     is_locked?: number;
     sync_status?: string;

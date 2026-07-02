@@ -1,13 +1,28 @@
-import { MMKVKeys, storage } from '../../../infrastructure/mmkv/storage';
+import * as SecureStore from 'expo-secure-store';
 
-export const setLastCursor = (cursor: number) => {
-    storage.set(MMKVKeys.LAST_CURSOR, cursor);
+const LAST_CURSOR_KEY = 'last_notes_cursor';
+
+export const setLastCursor = async (cursor: number): Promise<void> => {
+    try {
+        await SecureStore.setItemAsync(LAST_CURSOR_KEY, String(cursor));
+    } catch {
+        // ignore
+    }
 };
 
-export const getLastCursor = (): number | undefined => {
-    return storage.getNumber(MMKVKeys.LAST_CURSOR);
+export const getLastCursor = async (): Promise<number | undefined> => {
+    try {
+        const val = await SecureStore.getItemAsync(LAST_CURSOR_KEY);
+        return val ? Number(val) : undefined;
+    } catch {
+        return undefined;
+    }
 };
 
-export const clearLastCursor = () => {
-    storage.remove(MMKVKeys.LAST_CURSOR);
+export const clearLastCursor = async (): Promise<void> => {
+    try {
+        await SecureStore.deleteItemAsync(LAST_CURSOR_KEY);
+    } catch {
+        // ignore
+    }
 };

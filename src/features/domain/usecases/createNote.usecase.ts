@@ -8,7 +8,7 @@ export const createNoteUseCase = async (
     content: string,
     type: 'note' | 'reminder' = 'note',
     reminderAt?: number,
-    audioUri?: string,
+    audioUri?: string[],
     images?: ImagePickerAsset[],
     isLocked?: number,
     userId?: string
