@@ -69,3 +69,65 @@ BEGIN
     DELETE FROM auth.users WHERE id = auth.uid();
 END;
 $$;
+
+-- 7. Create storage buckets for audio recordings and images (private)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('notes-audio', 'notes-audio', false),
+       ('notes-images', 'notes-images', false)
+ON CONFLICT (id) DO UPDATE SET public = false;
+
+-- 8. Storage bucket policies
+
+-- Allow authenticated users to read audio files
+CREATE POLICY "Auth read notes-audio"
+ON storage.objects FOR SELECT
+TO authenticated
+USING (bucket_id = 'notes-audio');
+
+-- Allow authenticated users to read image files
+CREATE POLICY "Auth read notes-images"
+ON storage.objects FOR SELECT
+TO authenticated
+USING (bucket_id = 'notes-images');
+
+-- Allow authenticated users to upload audio to their own folder
+CREATE POLICY "Auth upload notes-audio"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (
+    bucket_id = 'notes-audio'
+    AND auth.uid()::text = (storage.foldername(name))[1]
+);
+
+-- Allow authenticated users to upload images to their own folder
+CREATE POLICY "Auth upload notes-images"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (
+    bucket_id = 'notes-images'
+    AND auth.uid()::text = (storage.foldername(name))[1]
+);
+
+-- Allow authenticated users to update (overwrite) their own audio files (needed for upsert)
+CREATE POLICY "Auth update notes-audio"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (bucket_id = 'notes-audio' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+-- Allow authenticated users to update (overwrite) their own image files (needed for upsert)
+CREATE POLICY "Auth update notes-images"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (bucket_id = 'notes-images' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+-- Allow authenticated users to delete their own audio files
+CREATE POLICY "Auth delete notes-audio"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (bucket_id = 'notes-audio' AND owner = auth.uid());
+
+-- Allow authenticated users to delete their own image files
+CREATE POLICY "Auth delete notes-images"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (bucket_id = 'notes-images' AND owner = auth.uid());

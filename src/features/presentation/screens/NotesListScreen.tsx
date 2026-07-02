@@ -125,12 +125,12 @@ export const NotesListScreen = () => {
         ({ route }: SceneRendererProps & { route: TabRoute }) => {
             const tabNotes = isSearching
                 ? notes.filter((n) => {
-                    if (route.key === 'pinned') return n.is_pinned === 1;
-                    if (route.key === 'notes') return n.type === 'note';
-                    if (route.key === 'reminders') return n.type === 'reminder';
-                    if (route.key === 'locked') return n.is_locked === 1;
-                    return true;
-                })
+                      if (route.key === 'pinned') return n.is_pinned === 1;
+                      if (route.key === 'notes') return n.type === 'note';
+                      if (route.key === 'reminders') return n.type === 'reminder';
+                      if (route.key === 'locked') return n.is_locked === 1;
+                      return true;
+                  })
                 : filteredNotes[route.key] || [];
 
             return (

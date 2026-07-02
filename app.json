@@ -29,7 +29,6 @@
         "plugins": [
             "expo-router",
             "expo-sqlite",
-            "expo-image",
             "expo-web-browser",
             "@react-native-community/datetimepicker",
             [
@@ -48,9 +47,7 @@
             [
                 "expo-font",
                 {
-                    "fonts": [
-                        "./src/assets/fonts"
-                    ]
+                    "fonts": ["./src/assets/fonts"]
                 }
             ],
             [
@@ -59,9 +56,7 @@
                     "icon": "./src/assets/images/notification.png",
                     "color": "#ffffff",
                     "defaultChannel": "default",
-                    "sounds": [
-                        "./src/assets/sounds/notification.wav"
-                    ],
+                    "sounds": ["./src/assets/sounds/notification.wav"],
                     "enableBackgroundRemoteNotifications": false
                 }
             ],

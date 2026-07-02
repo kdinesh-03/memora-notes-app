@@ -6,7 +6,7 @@ import { useColors } from '@/shared/theme/colors';
 import { useAuth } from '@/shared/store/useAuth';
 import { Toast } from '@/features/presentation/context/ToastProvider';
 import { styles } from '../styles/MenuScreen.styles';
-import * as Constants from 'expo-constants';
+import { getVersion } from 'react-native-device-info';
 import {
     ChangePassword,
     DeleteAccount,
@@ -238,7 +238,7 @@ export const MenuScreen = () => {
                 )}
 
                 <Text style={[styles.versionText, { color: colors.textTertiary }]}>
-                    Memora • v{Constants.default.expoConfig?.version}
+                    Memora • v{getVersion()}
                 </Text>
             </ScrollView>
         </View>

@@ -37,19 +37,22 @@ export const OnboardingScreen = () => {
         {
             id: 0,
             title: 'Capture Your Thoughts',
-            subtitle: 'Create rich notes with quick checklists, task types, and custom formatting options to organize your life.',
+            subtitle:
+                'Create rich notes with quick checklists, task types, and custom formatting options to organize your life.',
             illustration: <CaptureNotesIllustration />,
         },
         {
             id: 1,
             title: 'Never Miss a Beat',
-            subtitle: 'Add timely alerts and location or time-based reminders directly to your notes and stay productive.',
+            subtitle:
+                'Add timely alerts and location or time-based reminders directly to your notes and stay productive.',
             illustration: <RemindersIllustration />,
         },
         {
             id: 2,
             title: 'Secure & Synced',
-            subtitle: 'Secure sensitive logs with a device-level lock, and sync notes to the cloud to access them anywhere.',
+            subtitle:
+                'Secure sensitive logs with a device-level lock, and sync notes to the cloud to access them anywhere.',
             illustration: <SyncSecureIllustration />,
         },
     ];
@@ -59,7 +62,7 @@ export const OnboardingScreen = () => {
         const index = Math.round(contentOffsetX / WINDOW_WIDTH);
         if (index !== activeIndex && index >= 0 && index < slides.length) {
             setActiveIndex(index);
-            Haptics.selectionAsync().catch(() => { });
+            Haptics.selectionAsync().catch(() => {});
         }
     };
 
@@ -69,19 +72,19 @@ export const OnboardingScreen = () => {
                 x: (activeIndex + 1) * WINDOW_WIDTH,
                 animated: true,
             });
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => { });
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
         } else {
             handleFinish();
         }
     };
 
     const handleSkip = () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
         handleFinish();
     };
 
     const handleFinish = () => {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => { });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         completeOnboarding();
     };
 
@@ -103,9 +106,7 @@ export const OnboardingScreen = () => {
                 )}
             </View>
 
-            <Text style={[styles.memoraLabel, { color: colors.accent }]}>
-                MEMORA
-            </Text>
+            <Text style={[styles.memoraLabel, { color: colors.accent }]}>MEMORA</Text>
 
             <ScrollView
                 ref={scrollViewRef}
@@ -119,9 +120,7 @@ export const OnboardingScreen = () => {
                 {slides.map((slide, i) => {
                     return (
                         <View key={slide.id} style={styles.slide}>
-                            <View style={styles.illustrationContainer}>
-                                {slide.illustration}
-                            </View>
+                            <View style={styles.illustrationContainer}>{slide.illustration}</View>
                             <View style={styles.textContainer}>
                                 <Text style={[styles.title, { color: colors.text }]}>
                                     {slide.title}
@@ -147,13 +146,15 @@ export const OnboardingScreen = () => {
                                         x: index * WINDOW_WIDTH,
                                         animated: true,
                                     });
-                                    Haptics.selectionAsync().catch(() => { });
+                                    Haptics.selectionAsync().catch(() => {});
                                 }}
                                 style={[
                                     styles.dot,
                                     {
                                         width: isActive ? 20 : 8,
-                                        backgroundColor: isActive ? colors.accent : colors.borderDark,
+                                        backgroundColor: isActive
+                                            ? colors.accent
+                                            : colors.borderDark,
                                         opacity: isActive ? 1 : 0.4,
                                     },
                                 ]}
@@ -171,9 +172,7 @@ export const OnboardingScreen = () => {
                             pressed && styles.buttonPressed,
                         ]}
                     >
-                        <Text style={styles.buttonText}>
-                            {isLastPage ? 'Get Started' : 'Next'}
-                        </Text>
+                        <Text style={styles.buttonText}>{isLastPage ? 'Get Started' : 'Next'}</Text>
                     </Pressable>
                 </View>
             </View>

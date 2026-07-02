@@ -9,7 +9,6 @@ A privacy-first notes and reminders app built with React Native (Expo) and Supab
 - **Offline-First** — Notes are saved locally to SQLite first, then synced asynchronously to the cloud
 - **Cloud Sync** — When signed in and online, every create/update/delete/pin/lock/unlock/reorder automatically syncs with Supabase
 - **Conflict Resolution** — Last-writer-wins based on `updated_at` timestamps
-- **Drag-to-Reorder** — Long-press and drag notes to reorder; order persists across devices via sync
 - **Pin Notes** — Pin important notes to the top of the list
 - **Per-Note PIN Lock** — Lock individual notes behind a 4-digit PIN
 - **App Lock** — Lock the entire app with device biometrics or a PIN
@@ -23,7 +22,7 @@ A privacy-first notes and reminders app built with React Native (Expo) and Supab
 ## Tech Stack
 
 | Layer         | Technology                         |
-| ------------  | ---------------------------------- |
+| ------------- | ---------------------------------- |
 | Framework     | React Native + Expo 56             |
 | Language      | TypeScript                         |
 | Routing       | Expo Router (file-based)           |
@@ -78,8 +77,8 @@ src/
 2. Repository automatically writes to SQLite and adds a pending entry to the sync queue
 3. After each mutation, `triggerSyncIfAvailable()` checks if the user is authenticated and online
 4. If conditions are met, `startSync()` is called which:
-   - **Push**: Uploads local pending changes to Supabase (files first, then note data)
-   - **Pull**: Fetches remote changes, decrypts, and merges with conflict resolution (latest `updated_at` wins)
+    - **Push**: Uploads local pending changes to Supabase (files first, then note data)
+    - **Pull**: Fetches remote changes, decrypts, and merges with conflict resolution (latest `updated_at` wins)
 5. Sync status is surfaced in the UI with a badge indicator
 
 ## Setup

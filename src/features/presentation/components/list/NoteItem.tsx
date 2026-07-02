@@ -56,108 +56,95 @@ interface NoteItemProps {
     note: Note;
     onPress: (id: string) => void;
     onTogglePin: (note: Note) => void;
-    onLongPress?: () => void;
-    isActive?: boolean;
 }
 
-export const NoteItem = memo(
-    ({ note, onPress, onTogglePin, onLongPress, isActive }: NoteItemProps) => {
-        const colors = useColors();
-        const isUpcoming =
-            note.type === 'reminder' && note.reminder_at && note.reminder_at > Date.now();
-        const isLocked = note.is_locked === 1;
+export const NoteItem = memo(({ note, onPress, onTogglePin }: NoteItemProps) => {
+    const colors = useColors();
+    const isUpcoming =
+        note.type === 'reminder' && note.reminder_at && note.reminder_at > Date.now();
+    const isLocked = note.is_locked === 1;
 
-        return (
-            <Pressable
-                onPress={() => onPress(note.id)}
-                onLongPress={onLongPress}
-                delayLongPress={200}
-                disabled={isActive}
-                style={[
-                    styles.noteCard,
-                    {
-                        backgroundColor: colors.cardBackground,
-                        borderColor: colors.border,
-                        borderWidth: 1,
-                    },
-                ]}
-            >
-                <View style={styles.titleContainer}>
-                    <Text style={[styles.noteTitle, { color: colors.text }]} numberOfLines={1}>
-                        {note.title || 'Untitled'}
-                    </Text>
-                    <Pressable
-                        onPress={() => onTogglePin(note)}
-                        hitSlop={10}
-                        style={styles.pinButton}
-                    >
-                        <Pin
-                            size={17}
-                            color={note.is_pinned === 1 ? colors.accent : colors.textTertiary}
-                            fill={note.is_pinned === 1 ? colors.accent : 'transparent'}
-                        />
-                    </Pressable>
-                </View>
-
-                <Text
-                    style={[styles.noteSnippet, { color: colors.textSecondary }]}
-                    numberOfLines={2}
-                >
-                    {isLocked ? '🔒 This note is locked' : note.content || (note.audio_uri && note.audio_uri.length > 0 ? 'Audio Note' : 'No content')}
+    return (
+        <Pressable
+            onPress={() => onPress(note.id)}
+            style={[
+                styles.noteCard,
+                {
+                    backgroundColor: colors.cardBackground,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                },
+            ]}
+        >
+            <View style={styles.titleContainer}>
+                <Text style={[styles.noteTitle, { color: colors.text }]} numberOfLines={1}>
+                    {note.title || 'Untitled'}
                 </Text>
+                <Pressable onPress={() => onTogglePin(note)} hitSlop={10} style={styles.pinButton}>
+                    <Pin
+                        size={17}
+                        color={note.is_pinned === 1 ? colors.accent : colors.textTertiary}
+                        fill={note.is_pinned === 1 ? colors.accent : 'transparent'}
+                    />
+                </Pressable>
+            </View>
 
-                <View style={styles.footer}>
-                    <View style={styles.footerLeft}>
-                        {note.type === 'reminder' ? (
-                            <View
+            <Text style={[styles.noteSnippet, { color: colors.textSecondary }]} numberOfLines={2}>
+                {isLocked
+                    ? '🔒 This note is locked'
+                    : note.content ||
+                      (note.audio_uri && note.audio_uri.length > 0 ? 'Audio Note' : 'No content')}
+            </Text>
+
+            <View style={styles.footer}>
+                <View style={styles.footerLeft}>
+                    {note.type === 'reminder' ? (
+                        <View
+                            style={[
+                                styles.timeBadge,
+                                isUpcoming
+                                    ? styles.upcomingTimeBadge
+                                    : [
+                                          styles.expiredTimeBadge,
+                                          { backgroundColor: colors.tabCountBadge },
+                                      ],
+                            ]}
+                        >
+                            <Bell
+                                size={12}
+                                color={isUpcoming ? '#FFD60A' : colors.textTertiary}
+                                fill={isUpcoming ? '#FFD60A' : 'transparent'}
+                            />
+                            <Text
                                 style={[
-                                    styles.timeBadge,
-                                    isUpcoming
-                                        ? styles.upcomingTimeBadge
-                                        : [
-                                            styles.expiredTimeBadge,
-                                            { backgroundColor: colors.tabCountBadge },
-                                        ],
+                                    styles.timeBadgeText,
+                                    {
+                                        color: isUpcoming ? '#FFD60A' : colors.textSecondary,
+                                    },
                                 ]}
                             >
-                                <Bell
-                                    size={12}
-                                    color={isUpcoming ? '#FFD60A' : colors.textTertiary}
-                                    fill={isUpcoming ? '#FFD60A' : 'transparent'}
-                                />
-                                <Text
-                                    style={[
-                                        styles.timeBadgeText,
-                                        {
-                                            color: isUpcoming ? '#FFD60A' : colors.textSecondary,
-                                        },
-                                    ]}
-                                >
-                                    {formatUpcomingTime(note.reminder_at)}
-                                </Text>
-                            </View>
-                        ) : (
-                            <Text style={[styles.noteDate, { color: colors.textTertiary }]}>
-                                {new Date(note.updated_at).toLocaleDateString()}
+                                {formatUpcomingTime(note.reminder_at)}
                             </Text>
-                        )}
-                    </View>
-                    {/* Sync status dot */}
-                    <View
-                        style={[
-                            styles.syncDot,
-                            { backgroundColor: getSyncDotColor(note.sync_status) },
-                        ]}
-                    />
+                        </View>
+                    ) : (
+                        <Text style={[styles.noteDate, { color: colors.textTertiary }]}>
+                            {new Date(note.updated_at).toLocaleDateString()}
+                        </Text>
+                    )}
                 </View>
-            </Pressable>
-        );
-    }
-);
+                {/* Sync status dot */}
+                <View
+                    style={[styles.syncDot, { backgroundColor: getSyncDotColor(note.sync_status) }]}
+                />
+            </View>
+        </Pressable>
+    );
+});
 
 const styles = StyleSheet.create({
     noteCard: {
         padding: 16,
+        marginHorizontal: 16,
         borderRadius: 12,
         boxShadow: '0px 1px 3px 0px rgba(0,0,0,0.1)',
         marginBottom: 12,
@@ -166,8 +153,6 @@ const styles = StyleSheet.create({
     },
     activeCard: {
         opacity: 0.9,
-        borderColor: '#007AFF',
-        borderWidth: 1,
     },
     titleContainer: {
         flexDirection: 'row',

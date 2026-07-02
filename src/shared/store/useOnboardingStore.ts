@@ -17,8 +17,8 @@ export const useOnboardingStore = create<OnboardingState>()(
             name: 'onboarding_completed_preference',
             storage: createJSONStorage(() => secureStorage),
             partialize: (state) => ({
-                onboardingCompleted: state.onboardingCompleted
-            })
+                onboardingCompleted: state.onboardingCompleted,
+            }),
         }
     )
 );

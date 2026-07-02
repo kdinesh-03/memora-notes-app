@@ -48,7 +48,8 @@ export const useNoteEditor = (id?: string) => {
     }, [id]);
 
     const handleSave = async () => {
-        if (!title.trim() && !content.trim() && audioUri.length === 0 && images.length === 0) return;
+        if (!title.trim() && !content.trim() && audioUri.length === 0 && images.length === 0)
+            return;
 
         setSaving(true);
         try {

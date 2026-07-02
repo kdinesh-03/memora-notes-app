@@ -10,7 +10,7 @@ export const AppLockOverlay = () => {
     const { authenticate } = useAppLock();
 
     const handleUnlockPress = async () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => { });
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
         await authenticate();
     };
 
@@ -63,14 +63,14 @@ const styles = StyleSheet.create({
         fontSize: 24,
         marginBottom: 10,
         textAlign: 'center',
-        ...fonts.fontSemiBold
+        ...fonts.fontSemiBold,
     },
     description: {
         fontSize: 15,
         textAlign: 'center',
         marginBottom: 32,
         lineHeight: 20,
-        ...fonts.fontRegular
+        ...fonts.fontRegular,
     },
     button: {
         width: '100%',
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     buttonText: {
         color: '#FFFFFF',
         fontSize: 16,
-        ...fonts.fontBold
+        ...fonts.fontBold,
     },
 });
 

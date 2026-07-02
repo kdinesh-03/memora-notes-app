@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Swipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Trash2 } from 'lucide-react-native';
 import { fonts } from '../../../../shared/utils/fonts';
@@ -9,13 +9,12 @@ interface SwipeableNoteProps {
     note: Note;
     onDelete: (id: string, type: 'note' | 'reminder') => void;
     children: React.ReactNode;
-    enabled?: boolean;
 }
 
-export const SwipeableNote = ({ note, onDelete, children, enabled = true }: SwipeableNoteProps) => {
+export const SwipeableNote = ({ note, onDelete, children }: SwipeableNoteProps) => {
     const swipeableRef = useRef<SwipeableMethods | null>(null);
 
-    const renderRightActions = () => {
+    const renderActions = () => {
         return (
             <Pressable
                 style={styles.swipeDeleteButton}
@@ -34,10 +33,9 @@ export const SwipeableNote = ({ note, onDelete, children, enabled = true }: Swip
         <Swipeable
             ref={swipeableRef}
             friction={2}
-            leftThreshold={30}
+            leftThreshold={40}
             rightThreshold={40}
-            renderRightActions={renderRightActions}
-            enabled={enabled}
+            renderRightActions={renderActions}
         >
             {children}
         </Swipeable>
@@ -52,7 +50,7 @@ const styles = StyleSheet.create({
         width: 80,
         borderRadius: 12,
         marginBottom: 12,
-        marginLeft: 12,
+        marginRight: 16,
         flexDirection: 'column',
         gap: 4,
     },

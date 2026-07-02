@@ -1,5 +1,6 @@
 import { View, Text, TextInput, Pressable, ActivityIndicator, BackHandler } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { useColors } from '@/shared/theme/colors';
 import { useAuth } from '@/shared/store/useAuth';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,12 +21,14 @@ export const ResetPassword = () => {
     const [showNew, setShowNew] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
-    const [loading, setLoading] = useState(false);
-
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [focusedField, setFocusedField] = useState<'new-password' | 'confirm-password' | null>(
         null
     );
+
+    // Track whether the user completed the flow (saved successfully)
+    // If they leave without saving, we sign them out on unmount
+    const completedRef = useRef(false);
 
     const {
         handleSubmit: handleFormSubmit,
@@ -41,6 +44,7 @@ export const ResetPassword = () => {
         const result = await changePassword(data.newPassword);
         setIsSubmitting(false);
         if (result.success) {
+            completedRef.current = true;
             Toast.show({ message: 'Password changed successfully' });
             router.replace('/');
         } else {
@@ -48,12 +52,21 @@ export const ResetPassword = () => {
         }
     };
 
-    const handleBack = async () => {
-        setLoading(true);
-        await signOut();
+    const handleBack = useCallback(() => {
+        // Navigate immediately — sign-out runs in background via useFocusEffect cleanup
         router.replace('/');
-        setLoading(false);
-    };
+    }, []);
+
+    // Sign out in the background when the screen unmounts without a successful save
+    useFocusEffect(
+        useCallback(() => {
+            return () => {
+                if (!completedRef.current) {
+                    signOut();
+                }
+            };
+        }, [signOut])
+    );
 
     useEffect(() => {
         const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -61,7 +74,7 @@ export const ResetPassword = () => {
             return true;
         });
         return () => sub.remove();
-    }, []);
+    }, [handleBack]);
 
     return (
         <View

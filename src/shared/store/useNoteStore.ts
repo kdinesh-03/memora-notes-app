@@ -27,7 +27,6 @@ interface AppState {
     addNote: (note: Note) => void;
     updateNote: (note: Note) => void;
     removeNote: (id: string) => void;
-    reorderNotes: (notes: Note[]) => void;
     setLoading: (loading: boolean) => void;
     setHasMore: (hasMore: boolean) => void;
     setTabCounts: (counts: {
@@ -81,7 +80,6 @@ export const useNoteStore = create<AppState>((set, get) => ({
         set((state) => ({
             notes: state.notes.filter((n) => n.id !== id),
         })),
-    reorderNotes: (notes) => set({ notes }),
     setLoading: (loading) => set({ loading }),
     setHasMore: (hasMore) => set({ hasMore }),
     setTabCounts: (counts) => set({ tabCounts: counts }),

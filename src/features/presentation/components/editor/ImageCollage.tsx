@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { View, Pressable, StyleSheet, Dimensions } from 'react-native';
-import { Image } from 'expo-image';
+import { View, Pressable, StyleSheet, Dimensions, Image } from 'react-native';
 import { ImagePickerAsset } from 'expo-image-picker';
 import { X } from 'lucide-react-native';
 

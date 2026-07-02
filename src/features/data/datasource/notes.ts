@@ -1,9 +1,9 @@
 import { getDb } from '../../../infrastructure/database/sqlite';
 import { Note } from '../../domain/entities/Note';
 import type { ImagePickerAsset } from 'expo-image-picker';
-import { getDeviceId } from '../../../infrastructure/sync/deviceId';
 import { encrypt, decrypt, isEncrypted } from '../../../infrastructure/encryption/encryption';
 import { mapInIdle } from '../../../shared/utils/idle';
+import { getDeviceId } from 'react-native-device-info';
 
 const parseNoteRow = async (row: any): Promise<Note> => {
     let decryptedContent = row.content;
@@ -280,19 +280,6 @@ export const searchNotes = async (
     );
 
     return filtered.slice(offset, offset + limit);
-};
-
-export const updateNotesOrder = async (orderedIds: string[]): Promise<void> => {
-    const db = await getDb();
-    const now = Date.now();
-
-    for (let i = 0; i < orderedIds.length; i++) {
-        const updatedAt = now - i;
-        await db.runAsync(
-            "UPDATE notes SET updated_at = ?, sync_status = 'pending' WHERE id = ?",
-            [updatedAt, orderedIds[i]]
-        );
-    }
 };
 
 export const getNotesCounts = async (

@@ -23,6 +23,8 @@ import PinModal from '../components/shared/PinModal';
 import { hasPin, setupPin } from '../hooks/useLockNote';
 import { useColors } from '@/shared/theme/colors';
 import { styles } from '../styles/NoteEditorScreen.styles';
+import { deleteAudio, deleteImages } from '@/infrastructure/supabase/storage';
+import { useAuth } from '@/shared/store/useAuth';
 
 export const NoteEditorScreen = () => {
     const colors = useColors();
@@ -50,6 +52,8 @@ export const NoteEditorScreen = () => {
 
     const { isRecording, duration, start, stop, cancel, handlePermission } = useAudioRecorder();
 
+    const { user } = useAuth();
+
     const { bottom, top } = useSafeAreaInsets();
 
     const [showPicker, setShowPicker] = useState(false);
@@ -76,7 +80,13 @@ export const NoteEditorScreen = () => {
         }
     };
 
-    const handleDeleteRecording = (index: number) => {
+    const handleDeleteRecording = async (index: number) => {
+        const uri = audioUri[index];
+        if (uri?.startsWith('http') && user?.id) {
+            const ext = uri.split('.').pop() || 'm4a';
+            const path = `${user.id}/${noteId}/${index}.${ext}`;
+            await deleteAudio(path);
+        }
         setAudioUri((prev) => prev.filter((_, i) => i !== index));
     };
 
@@ -176,7 +186,13 @@ export const NoteEditorScreen = () => {
                         {images.length > 0 && (
                             <ImageCollage
                                 images={images}
-                                onRemoveImage={(index) => {
+                                onRemoveImage={async (index) => {
+                                    const img = images[index];
+                                    if (img?.uri?.startsWith('http') && user?.id) {
+                                        const ext = img.uri.split('.').pop() || 'jpg';
+                                        const path = `${user.id}/${noteId}/${index}.${ext}`;
+                                        await deleteImages([path]);
+                                    }
                                     setImages((prev) => prev.filter((_, i) => i !== index));
                                 }}
                             />
@@ -189,10 +205,7 @@ export const NoteEditorScreen = () => {
                                 onDiscard={handleDiscardRecording}
                             />
                         ) : audioUri.length > 0 ? (
-                            <VoicePlayer
-                                audioUris={audioUri}
-                                onDelete={handleDeleteRecording}
-                            />
+                            <VoicePlayer audioUris={audioUri} onDelete={handleDeleteRecording} />
                         ) : (
                             <View>
                                 <TextInput

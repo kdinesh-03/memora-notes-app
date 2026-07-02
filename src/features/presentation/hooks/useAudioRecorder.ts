@@ -5,6 +5,7 @@ import {
     AudioModule,
     setAudioModeAsync,
 } from 'expo-audio';
+import { Toast } from '../context/ToastProvider';
 
 export const useAudioRecorder = () => {
     const recorder = useRecorder(RecordingPresets.HIGH_QUALITY);
@@ -15,6 +16,7 @@ export const useAudioRecorder = () => {
 
         if (!permission.granted) {
             console.log('Mic permission denied');
+            Toast.show({ message: 'Access Denied. Allow Microphone access to record voice note.' });
             return;
         }
 
@@ -22,7 +24,7 @@ export const useAudioRecorder = () => {
             allowsRecording: true,
             playsInSilentMode: true,
         });
-    }
+    };
 
     const start = async () => {
         await recorder.prepareToRecordAsync();
@@ -47,6 +49,6 @@ export const useAudioRecorder = () => {
         stop,
         cancel,
         audioUri: recorder.uri,
-        handlePermission
+        handlePermission,
     };
 };

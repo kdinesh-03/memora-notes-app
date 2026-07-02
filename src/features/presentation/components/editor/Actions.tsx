@@ -151,14 +151,17 @@ const Actions = ({
                         style={[
                             styles.actionButtonText,
                             { color: colors.textSecondary },
-                            isRecording && { color: '#FF453A', fontFamily: fonts.fontMedium.fontFamily },
+                            isRecording && {
+                                color: '#FF453A',
+                                fontFamily: fonts.fontMedium.fontFamily,
+                            },
                         ]}
                     >
                         {isRecording
                             ? `Recording ${formatDuration(recordingDuration ?? 0)}`
                             : audioUri && audioUri.length > 0
-                                ? `Voice Note (${audioUri.length})`
-                                : 'Record Voice Note'}
+                              ? `Voice Note (${audioUri.length})`
+                              : 'Record Voice Note'}
                     </Text>
                 </PressableScale>
 
@@ -175,32 +178,34 @@ const Actions = ({
                     </Text>
                 </PressableScale>
 
-                <PressableScale
-                    style={[
-                        styles.actionButton,
-                        { backgroundColor: colors.cardBackground, borderColor: colors.border },
-                        isLocked && {
-                            borderColor: colors.accent,
-                            backgroundColor: colors.accentLight,
-                        },
-                    ]}
-                    onPress={() => handleAction('lock-note')}
-                >
-                    {isLocked ? (
-                        <Unlock size={17} color={colors.accent} />
-                    ) : (
-                        <Lock size={17} color={colors.textSecondary} />
-                    )}
-                    <Text
+                {noteType === 'note' && (
+                    <PressableScale
                         style={[
-                            styles.actionButtonText,
-                            { color: colors.textSecondary },
-                            isLocked && { color: colors.accent },
+                            styles.actionButton,
+                            { backgroundColor: colors.cardBackground, borderColor: colors.border },
+                            isLocked && {
+                                borderColor: colors.accent,
+                                backgroundColor: colors.accentLight,
+                            },
                         ]}
+                        onPress={() => handleAction('lock-note')}
                     >
-                        {isLocked ? 'Unlock Note' : 'Lock Note'}
-                    </Text>
-                </PressableScale>
+                        {isLocked ? (
+                            <Unlock size={17} color={colors.accent} />
+                        ) : (
+                            <Lock size={17} color={colors.textSecondary} />
+                        )}
+                        <Text
+                            style={[
+                                styles.actionButtonText,
+                                { color: colors.textSecondary },
+                                isLocked && { color: colors.accent },
+                            ]}
+                        >
+                            {isLocked ? 'Unlock Note' : 'Lock Note'}
+                        </Text>
+                    </PressableScale>
+                )}
             </ScrollView>
         </View>
     );

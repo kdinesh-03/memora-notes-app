@@ -54,7 +54,9 @@ export const VoiceRecorder = ({ duration, onStop, onDiscard }: VoiceRecorderProp
                     <View style={[styles.iconCircle, { backgroundColor: colors.border }]}>
                         <X size={18} color={colors.textSecondary} />
                     </View>
-                    <Text style={[styles.controlLabel, { color: colors.textTertiary }]}>Discard</Text>
+                    <Text style={[styles.controlLabel, { color: colors.textTertiary }]}>
+                        Discard
+                    </Text>
                 </Pressable>
 
                 <Pressable onPress={onStop} style={styles.controlButton}>

@@ -94,9 +94,7 @@ const VoiceNoteItem = ({
     };
 
     const progress =
-        isActive && status.duration > 0
-            ? (status.currentTime / status.duration) * 100
-            : 0;
+        isActive && status.duration > 0 ? (status.currentTime / status.duration) * 100 : 0;
 
     return (
         <View
@@ -133,7 +131,13 @@ const VoiceNoteItem = ({
                 />
             </View>
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View
+                style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                }}
+            >
                 <Text style={[styles.timeText, { color: colors.textTertiary }]}>
                     {formatTime(status.currentTime)}
                 </Text>
@@ -179,7 +183,7 @@ const styles = StyleSheet.create({
     },
     list: {
         width: '100%',
-        flexDirection: "column",
+        flexDirection: 'column',
         gap: 10,
     },
     item: {

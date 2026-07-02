@@ -17,7 +17,7 @@ import { BottomSheetProvider, AppLockOverlay } from '@/features/presentation/com
 import * as Linking from 'expo-linking';
 import { useOnboardingStore } from '@/shared/store/useOnboardingStore';
 
-SplashScreen.preventAutoHideAsync().catch(() => { });
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
     const [isDbReady, setIsDbReady] = useState(false);
@@ -25,26 +25,23 @@ export default function RootLayout() {
     const { restoreSession, setSession } = useAuth();
     const { loadTheme } = useThemeStore();
     const { onboardingCompleted } = useOnboardingStore();
-    const { isAppLocked, isAppLockEnabled, loadAppLockSettings, setAppLocked, authenticate } = useAppLock();
+    const { isAppLocked, isAppLockEnabled, loadAppLockSettings, setAppLocked, authenticate } =
+        useAppLock();
 
     useEffect(() => {
         const prepare = async () => {
             try {
-                await Promise.all([
-                    restoreSession(),
-                    loadTheme(),
-                    initDb(),
-                ]);
+                await Promise.all([restoreSession(), loadTheme(), initDb()]);
             } catch (e) {
                 console.log('Error during initialization:', e);
             } finally {
                 setIsDbReady(true);
-                await SplashScreen.hideAsync().catch(() => { });
+                await SplashScreen.hideAsync().catch(() => {});
             }
         };
         prepare();
 
-        loadAppLockSettings().catch(() => { });
+        loadAppLockSettings().catch(() => {});
     }, []);
 
     useEffect(() => {
@@ -155,14 +152,14 @@ export default function RootLayout() {
                                 }}
                             >
                                 <Stack.Protected guard={!onboardingCompleted}>
-                                    <Stack.Screen name='onboarding' />
+                                    <Stack.Screen name="onboarding" />
                                 </Stack.Protected>
                                 <Stack.Protected guard={onboardingCompleted}>
-                                    <Stack.Screen name='index' />
-                                    <Stack.Screen name='editor' />
-                                    <Stack.Screen name='menu' />
-                                    <Stack.Screen name='register' />
-                                    <Stack.Screen name='reset-password' />
+                                    <Stack.Screen name="index" />
+                                    <Stack.Screen name="editor" />
+                                    <Stack.Screen name="menu" />
+                                    <Stack.Screen name="register" />
+                                    <Stack.Screen name="reset-password" />
                                 </Stack.Protected>
                             </Stack>
                             {isAppLocked && isAppLockEnabled && <AppLockOverlay />}

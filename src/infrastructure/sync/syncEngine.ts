@@ -20,7 +20,7 @@ import {
     markCompleted,
     markFailed,
 } from '../../features/data/datasource/syncQueue';
-import { getDeviceId } from './deviceId';
+import { getDeviceId } from 'react-native-device-info';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import { uploadAudio, uploadImages } from '../supabase/storage';
 import { updateNote } from '../../features/data/datasource/notes';
@@ -47,7 +47,7 @@ const toRemoteNote = async (note: Note, userId: string): Promise<RemoteNote> => 
     images: note.images ?? null,
     is_locked: Boolean(note.is_locked),
     sync_status: 'synced',
-    device_id: note.device_id ?? await getDeviceId(),
+    device_id: note.device_id ?? (await getDeviceId()),
     created_at: note.created_at,
     updated_at: note.updated_at,
     deleted_at: note.deleted_at ?? null,
@@ -105,9 +105,7 @@ const uploadNoteFiles = async (
     }
 
     if (images && Array.isArray(images) && images.length > 0) {
-        const hasLocalImages = images.some(
-            (img: any) => img.uri && !img.uri.startsWith('http')
-        );
+        const hasLocalImages = images.some((img: any) => img.uri && !img.uri.startsWith('http'));
         if (hasLocalImages) {
             try {
                 images = await uploadImages(userId, note.id, images);
@@ -120,19 +118,26 @@ const uploadNoteFiles = async (
     return { audio_uri: audioUris, images };
 };
 
-const pushNoteWithFiles = async (
-    note: Note,
-    userId: string
-): Promise<void> => {
+const pushNoteWithFiles = async (note: Note, userId: string): Promise<void> => {
     const { audio_uri, images } = await uploadNoteFiles(note, userId);
 
     if (JSON.stringify(audio_uri) !== JSON.stringify(note.audio_uri) || images !== note.images) {
-        await updateNote(note.id, undefined, undefined, undefined, undefined, undefined, audio_uri, images);
+        await updateNote(
+            note.id,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            audio_uri,
+            images
+        );
     }
 
-    const updatedNote = JSON.stringify(audio_uri) !== JSON.stringify(note.audio_uri) || images !== note.images
-        ? { ...note, audio_uri, images }
-        : note;
+    const updatedNote =
+        JSON.stringify(audio_uri) !== JSON.stringify(note.audio_uri) || images !== note.images
+            ? { ...note, audio_uri, images }
+            : note;
 
     const remoteNote = await toRemoteNote(updatedNote, userId);
     await upsertRemoteNote(remoteNote);

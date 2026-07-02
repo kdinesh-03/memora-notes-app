@@ -1,18 +1,11 @@
 import { useCallback, useMemo } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import DraggableFlatList, {
-    RenderItemParams,
-    ScaleDecorator,
-} from 'react-native-draggable-flatlist';
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Note } from '../../../domain/entities/Note';
 import { NoteItem } from './NoteItem';
 import { SwipeableNote } from './SwipeableNote';
 import { fonts } from '../../../../shared/utils/fonts';
-import { useNoteStore } from '@/shared/store/useNoteStore';
-import { updateNotesOrder } from '../../../data/datasource/notes';
-import { triggerSyncIfAvailable } from '../../../../shared/services/syncTrigger';
 
 interface NotesTabProps {
     notes: Note[];
@@ -32,7 +25,6 @@ export const NotesTab = ({
     activeTab,
 }: NotesTabProps) => {
     const { bottom } = useSafeAreaInsets();
-    const { reorderNotes } = useNoteStore();
 
     const handlePress = useCallback(
         async (id: string) => {
@@ -42,32 +34,12 @@ export const NotesTab = ({
         [onNotePress]
     );
 
-    const handleDragEnd = useCallback(
-        ({ data }: { data: Note[] }) => {
-            reorderNotes(data);
-            const orderedIds = data.map((n) => n.id);
-            updateNotesOrder(orderedIds).catch((err) =>
-                console.log('Failed to persist reorder:', err)
-            );
-            triggerSyncIfAvailable();
-        },
-        [reorderNotes]
-    );
-
     const renderItem = useCallback(
-        ({ item, drag, isActive }: RenderItemParams<Note>) => {
+        ({ item }: { item: Note }) => {
             return (
-                <ScaleDecorator activeScale={1.05}>
-                    <SwipeableNote note={item} onDelete={onDelete} enabled={!isActive}>
-                        <NoteItem
-                            note={item}
-                            onPress={handlePress}
-                            onTogglePin={onTogglePin}
-                            onLongPress={drag}
-                            isActive={isActive}
-                        />
-                    </SwipeableNote>
-                </ScaleDecorator>
+                <SwipeableNote note={item} onDelete={onDelete}>
+                    <NoteItem note={item} onPress={handlePress} onTogglePin={onTogglePin} />
+                </SwipeableNote>
             );
         },
         [onDelete, onTogglePin, handlePress]
@@ -98,21 +70,18 @@ export const NotesTab = ({
                 </Text>
             </View>
         );
-    }, [loading, notes.length]);
+    }, [loading, notes.length, activeTab]);
 
     return (
-        <DraggableFlatList
+        <FlatList
             data={notes}
             renderItem={renderItem}
             keyExtractor={keyExtractor}
-            onDragEnd={handleDragEnd}
             ListEmptyComponent={ListEmptyComponent}
             contentContainerStyle={[styles.listContent, { paddingBottom: bottom }]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             scrollEventThrottle={16}
-            activationDistance={15}
-            containerStyle={{ flexGrow: 1 }}
         />
     );
 };
@@ -120,7 +89,7 @@ export const NotesTab = ({
 const styles = StyleSheet.create({
     listContent: {
         flexGrow: 1,
-        paddingHorizontal: 16,
+        // paddingHorizontal: 16,
         paddingTop: 16,
     },
     emptyState: {
