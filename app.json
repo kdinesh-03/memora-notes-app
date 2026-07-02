@@ -20,7 +20,15 @@
             },
             "predictiveBackGestureEnabled": false,
             "package": "com.memora.app",
-            "softwareKeyboardLayoutMode": "pan"
+            "softwareKeyboardLayoutMode": "pan",
+            "permissions": [
+                "android.permission.RECORD_AUDIO",
+                "android.permission.MODIFY_AUDIO_SETTINGS",
+                "android.permission.FOREGROUND_SERVICE",
+                "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+                "android.permission.USE_BIOMETRIC",
+                "android.permission.USE_FINGERPRINT"
+            ]
         },
         "web": {
             "output": "static",
@@ -94,6 +102,12 @@
         "experiments": {
             "typedRoutes": true,
             "reactCompiler": true
+        },
+        "extra": {
+            "router": {},
+            "eas": {
+                "projectId": "36f33b20-d313-4393-bead-cd3f1b6e430a"
+            }
         }
     }
 }
